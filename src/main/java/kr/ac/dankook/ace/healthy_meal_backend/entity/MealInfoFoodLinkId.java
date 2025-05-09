@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.Hibernate;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
 
@@ -13,12 +14,14 @@ import java.util.Objects;
 @Setter
 @Embeddable
 public class MealInfoFoodLinkId implements Serializable {
+    @Serial
     private static final long serialVersionUID = 515181595630036943L;
+
     @Column(name = "meal_info_id", nullable = false)
-    private Integer mealInfoId;
+    private Long mealInfoId;
 
     @Column(name = "food_id", nullable = false)
-    private Integer foodId;
+    private Long foodId;
 
     @Override
     public boolean equals(Object o) {

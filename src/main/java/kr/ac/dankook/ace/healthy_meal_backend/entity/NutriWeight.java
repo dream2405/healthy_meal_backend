@@ -25,6 +25,5 @@ public class NutriWeight {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-
+    private User user; // 가중치를 설정한 유저
 }
