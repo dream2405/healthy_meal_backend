@@ -14,7 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class FileSystemStorageService {
     private Path rootLocation;
 
-    public void store(MultipartFile file) {
+    /*public void store(MultipartFile file) {
         try {
             if (file.isEmpty()) {
                 throw new StorageException("Failed to store empty file.");
@@ -82,5 +82,5 @@ public class FileSystemStorageService {
         catch (IOException e) {
             throw new StorageException("Could not initialize storage", e);
         }
-    }
+    }*/
 }
