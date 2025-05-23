@@ -2,56 +2,75 @@ package kr.ac.dankook.ace.healthy_meal_backend.service;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.net.MalformedURLException;
+import java.nio.file.*;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Stream;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
+import org.springframework.util.FileSystemUtils;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class FileSystemStorageService implements StorageService {
+
+    private static final Logger logger = LoggerFactory.getLogger(FileSystemStorageService.class);
     private final Path rootLocation = Paths.get("/mnt/vol1/mysql_dir");
+    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    private static final String[] DISALLOWED_EXTENSIONS = { ".exe", ".bat", ".sh" };
 
     @Override
     public String store(MultipartFile file) {
         if (file.isEmpty()) {
-            throw new StorageException("빈 파일 저장 불가");
+            throw new StorageException("Cannot store empty file.");
+        }
+
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw new StorageException("File size exceeds the allowed limit.");
         }
 
         String originalFilename = StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename()));
-
         String extension = "";
+
         int i = originalFilename.lastIndexOf('.');
         if (i > 0) {
-            extension = originalFilename.substring(i); // .확장자 포함
+            extension = originalFilename.substring(i).toLowerCase(); // Includes '.'
         }
 
-        // 파일 이름에 UUID를 추가하여 중복 방지 및 보안강화
+        for (String ext : DISALLOWED_EXTENSIONS) {
+            if (extension.equals(ext)) {
+                throw new StorageException("File type not allowed: " + extension);
+            }
+        }
+
         String storedFilename = UUID.randomUUID().toString() + extension;
 
         try {
             if (originalFilename.contains("..")) {
-                // '../'가 포함된 파일 이름은 미허용
-                throw new StorageException("상대경로로 접근은 불가합니다: " + originalFilename);
+                throw new StorageException("Cannot store file with relative path: " + originalFilename);
             }
 
             Path destinationFile = this.rootLocation.resolve(storedFilename).normalize().toAbsolutePath();
 
             if (!destinationFile.getParent().equals(this.rootLocation.toAbsolutePath())) {
-                // rootLocation 외부의 경로에 저장하려는 시도 미허용
-                throw new StorageException("현재 디렉토리 외부로의 접근은 불가합니다.");
+                throw new StorageException("Attempt to store file outside the current directory.");
             }
 
             try (InputStream inputStream = file.getInputStream()) {
                 Files.copy(inputStream, destinationFile, StandardCopyOption.REPLACE_EXISTING);
             }
-            return storedFilename; // 저장된 파일 이름 (UUID + 확장자) 반환
-        } 
-        catch (IOException e) {
-            throw new StorageException("파일 저장 실패: " + originalFilename, e);
+
+            logger.info("File stored: {}", storedFilename);
+            return storedFilename;
+
+        } catch (IOException e) {
+            throw new StorageException("Failed to store file: " + originalFilename, e);
         }
     }
 
@@ -59,17 +78,16 @@ public class FileSystemStorageService implements StorageService {
     public void init() {
         try {
             Files.createDirectories(rootLocation);
-            System.out.println("저장소 초기화 됨: " + rootLocation.toAbsolutePath());
-        } 
-        catch (IOException e) {
-            throw new StorageException("저장소 초기화 불가: " + rootLocation.toAbsolutePath(), e);
+            logger.info("Storage initialized at: {}", rootLocation.toAbsolutePath());
+        } catch (IOException e) {
+            throw new StorageException("Could not initialize storage: " + rootLocation.toAbsolutePath(), e);
         }
     }
 
     @Override
     public Path load(String filename) {
         if (filename == null || filename.trim().isEmpty()) {
-            throw new StorageException("빈 파일");
+            throw new StorageException("Cannot load file with empty name.");
         }
         return rootLocation.resolve(filename);
     }
@@ -79,36 +97,35 @@ public class FileSystemStorageService implements StorageService {
         try {
             Path file = load(filename);
             Resource resource = new UrlResource(file.toUri());
+
             if (resource.exists() || resource.isReadable()) {
                 return resource;
-            } 
-            else {
-                throw new StorageFileNotFoundException("파일 읽기 실패: " + filename);
+            } else {
+                throw new StorageFileNotFoundException("Could not read file: " + filename);
             }
-        } 
-        catch (MalformedURLException e) {
-            throw new StorageFileNotFoundException("파일 읽기에 실패했습니다: " + filename, e);
+        } catch (MalformedURLException e) {
+            throw new StorageFileNotFoundException("Could not read file: " + filename, e);
         }
     }
 
     @Override
     public void delete(String filename) {
         if (filename == null || filename.trim().isEmpty()) {
-            System.err.println("빈 파일 이름");
-            return; 
+            logger.warn("Attempted to delete file with empty name.");
+            return;
         }
+
         try {
             Path file = load(filename);
-            // 파일이 실제로 rootLocation 내에 있는지 다시 한번 확인 
             if (!file.normalize().toAbsolutePath().startsWith(this.rootLocation.toAbsolutePath())) {
-                 System.err.println("외부 파일 삭제 불가: " + filename);
-                 throw new StorageException("현재 스토리지 외부 파일은 삭제 불가합니다");
+                logger.error("Attempted to delete file outside of storage: {}", filename);
+                throw new StorageException("Cannot delete file outside current storage.");
             }
+
             Files.deleteIfExists(file);
-        } 
-        catch (IOException e) {
-            // 파일이 사용 중이거나 다른 이유로 삭제할 수 없는 경우
-            throw new StorageException("파일 삭제 실패: " + filename, e);
+            logger.info("File deleted: {}", filename);
+        } catch (IOException e) {
+            throw new StorageException("Failed to delete file: " + filename, e);
         }
     }
 
@@ -116,10 +133,9 @@ public class FileSystemStorageService implements StorageService {
     public void deleteAll() {
         try {
             FileSystemUtils.deleteRecursively(rootLocation);
-            
-        } 
-        catch (IOException e) {
-            throw new StorageException("파일 일괄 삭제 실패: ", e);
+            logger.info("All files deleted in storage: {}", rootLocation.toAbsolutePath());
+        } catch (IOException e) {
+            throw new StorageException("Failed to delete all files", e);
         }
     }
 }
