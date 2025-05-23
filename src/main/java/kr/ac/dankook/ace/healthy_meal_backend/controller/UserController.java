@@ -10,15 +10,15 @@ import kr.ac.dankook.ace.healthy_meal_backend.repository.MealInfoRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.UserRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.service.StorageService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.time.LocalDate;
+import java.util.*;
 
 @RestController
 @RequestMapping("/users")
@@ -77,11 +77,17 @@ public class UserController {
 
     @GetMapping("/{userId}/meal-info")
     @Operation(summary = "주어진 ID의 유저가 기록한 모든 식단 정보 가져오기")
-    public ResponseEntity<List<MealInfo>> getMealInfo(@PathVariable String userId) {
+    public ResponseEntity<List<MealInfo>> getMealInfo(
+            @PathVariable String userId,
+            @RequestParam(value = "date", required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date
+    ) {
         Optional<User> user = userRepository.findById(userId);
-        return user
-                .map(value -> ResponseEntity.status(HttpStatus.OK).body(value.getMealInfos()))
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+        if (user.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+        List<MealInfo> mealInfos = mealInfoRepository.findByUserIdAndCreatedDate(userId, date);
+        return ResponseEntity.status(HttpStatus.OK).body(mealInfos);
     }
 
     @PostMapping(value = "/{userId}/meal-info", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -106,6 +112,7 @@ public class UserController {
         mealInfo.setUser(user.get());
 
         mealInfoRepository.save(mealInfo);
+        mealInfo = mealInfoRepository.findById(mealInfo.getId()).get();
         user.get().addMealInfo(mealInfo);
 
         MealInfoPostDTO mealInfoPostDTO = new MealInfoPostDTO();
@@ -113,6 +120,8 @@ public class UserController {
         mealInfoPostDTO.setIntakeAmount(intakeAmount);
         mealInfoPostDTO.setImgPath(fileName);
         mealInfoPostDTO.setDiary(diary);
+        mealInfoPostDTO.setCreatedAt(mealInfo.getCreatedAt());
+        mealInfoPostDTO.setLastModifiedAt(mealInfo.getLastModifiedAt());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(mealInfoPostDTO);
     }
