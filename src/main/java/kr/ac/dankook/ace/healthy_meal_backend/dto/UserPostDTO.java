@@ -1,4 +1,4 @@
-package kr.ac.dankook.ace.healthy_meal_backend.entity;
+package kr.ac.dankook.ace.healthy_meal_backend.dto;
 
 import lombok.Data;
 

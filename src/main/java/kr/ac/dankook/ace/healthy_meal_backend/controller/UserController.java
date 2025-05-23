@@ -2,15 +2,19 @@ package kr.ac.dankook.ace.healthy_meal_backend.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import kr.ac.dankook.ace.healthy_meal_backend.dto.MealInfoPostDTO;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.MealInfo;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
-import kr.ac.dankook.ace.healthy_meal_backend.entity.UserPostDTO;
+import kr.ac.dankook.ace.healthy_meal_backend.dto.UserPostDTO;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.MealInfoRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.UserRepository;
+import kr.ac.dankook.ace.healthy_meal_backend.service.StorageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Objects;
@@ -22,11 +26,17 @@ import java.util.Optional;
 public class UserController {
     private final UserRepository userRepository;
     private final MealInfoRepository mealInfoRepository;
+    private final StorageService storageService;
 
     @Autowired
-    public UserController(UserRepository userRepository, MealInfoRepository mealInfoRepository) {
+    public UserController(
+            UserRepository userRepository,
+            MealInfoRepository mealInfoRepository,
+            StorageService storageService
+    ) {
         this.userRepository = userRepository;
         this.mealInfoRepository = mealInfoRepository;
+        this.storageService = storageService;
     }
 
     @PostMapping
@@ -74,15 +84,37 @@ public class UserController {
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
-    @PostMapping("/{userId}/meal-info")
+    @PostMapping(value = "/{userId}/meal-info", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "주어진 정보로 주어진 ID의 유저가 식단정보 기록")
-    public ResponseEntity<MealInfo> createMealInfo(@PathVariable String userId, @RequestBody MealInfo mealInfo) {
+    public ResponseEntity<MealInfoPostDTO> createMealInfo(
+            @PathVariable String userId,
+            @RequestPart("img") MultipartFile file,
+            @RequestPart("intake_amount") String amount,
+            @RequestPart("diary") String diary
+    ) {
         Optional<User> user = userRepository.findById(userId);
         if (user.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
+        String fileName = storageService.store(file);
+        Integer intakeAmount = Integer.parseInt(amount);
+
+        MealInfo mealInfo = new MealInfo();
+        mealInfo.setImgPath(fileName);
+        mealInfo.setIntakeAmount(intakeAmount);
+        mealInfo.setDiary(diary);
+        mealInfo.setUser(user.get());
+
+        mealInfoRepository.save(mealInfo);
         user.get().addMealInfo(mealInfo);
-        return ResponseEntity.status(HttpStatus.CREATED).body(mealInfo);
+
+        MealInfoPostDTO mealInfoPostDTO = new MealInfoPostDTO();
+        mealInfoPostDTO.setId(mealInfo.getId());
+        mealInfoPostDTO.setIntakeAmount(intakeAmount);
+        mealInfoPostDTO.setImgPath(fileName);
+        mealInfoPostDTO.setDiary(diary);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(mealInfoPostDTO);
     }
 
     @GetMapping("/{userId}/meal-info/{mealInfoId}")

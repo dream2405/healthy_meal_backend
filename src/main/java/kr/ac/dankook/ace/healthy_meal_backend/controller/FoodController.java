@@ -64,23 +64,6 @@ public class FoodController {
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
-    @PostMapping("/{foodId}/meal-info")
-    @Operation(summary = "주어진 정보로 주어진 ID의 유저가 식단정보 기록")
-    public ResponseEntity<MealInfo> addMealInfo(
-            @PathVariable long foodId,
-            @RequestParam("img") MultipartFile file,
-            @RequestParam("intake_amount") int amount,
-            @RequestParam("diary") String diary
-    ) {
-        var food = foodRepository.findById(foodId);
-        if (food.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-        }
-        var mealInfo = new MealInfo();
-
-        return null;
-    }
-
     @PutMapping("/{foodId}/meal-info/{mealInfoId}")
     @Operation(summary = "주어진 ID의 음식이 주어진 ID의 식단정보로 판별 정보 추가",
             description = "멱등성 - 여러번 추가해도 하나만 추가됨")
