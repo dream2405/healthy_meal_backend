@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -61,6 +62,23 @@ public class FoodController {
         return food
                 .map(value -> ResponseEntity.ok(value.getMealInfos()))
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+    }
+
+    @PostMapping("/{foodId}/meal-info")
+    @Operation(summary = "주어진 정보로 주어진 ID의 유저가 식단정보 기록")
+    public ResponseEntity<MealInfo> addMealInfo(
+            @PathVariable long foodId,
+            @RequestParam("img") MultipartFile file,
+            @RequestParam("intake_amount") int amount,
+            @RequestParam("diary") String diary
+    ) {
+        var food = foodRepository.findById(foodId);
+        if (food.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
+        var mealInfo = new MealInfo();
+
+        return null;
     }
 
     @PutMapping("/{foodId}/meal-info/{mealInfoId}")
