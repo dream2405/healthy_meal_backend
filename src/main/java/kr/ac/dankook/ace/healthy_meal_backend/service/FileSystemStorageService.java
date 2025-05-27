@@ -33,7 +33,7 @@ public class FileSystemStorageService implements StorageService {
 
     // 저장소 루트 위치를 클래스 내 상수로 정의.
     
-    private static final String DEFAULT_STORAGE_LOCATION = "/mnt/vol1/mysql_dir"; 
+    private static final String DEFAULT_STORAGE_LOCATION = "/mnt/vol1/mysql_dir/img";
     private final Path rootLocation;
 
     // 파일 크기 제한 (예: 10MB)

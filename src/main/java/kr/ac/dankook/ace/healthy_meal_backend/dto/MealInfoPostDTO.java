@@ -2,7 +2,7 @@ package kr.ac.dankook.ace.healthy_meal_backend.dto;
 
 import lombok.Data;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Data
 public class MealInfoPostDTO {
@@ -10,6 +10,6 @@ public class MealInfoPostDTO {
     private Integer intakeAmount;
     private String imgPath;
     private String diary;
-    private Instant createdAt;
-    private Instant lastModifiedAt;
+    private LocalDateTime createdAt;
+    private LocalDateTime lastModifiedAt;
 }

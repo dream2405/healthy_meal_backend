@@ -3,12 +3,14 @@ package kr.ac.dankook.ace.healthy_meal_backend.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.ac.dankook.ace.healthy_meal_backend.dto.MealInfoPostDTO;
+import kr.ac.dankook.ace.healthy_meal_backend.dto.UserGetDTO;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.MealInfo;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
 import kr.ac.dankook.ace.healthy_meal_backend.dto.UserPostDTO;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.MealInfoRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.UserRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.service.StorageService;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -27,21 +29,24 @@ public class UserController {
     private final UserRepository userRepository;
     private final MealInfoRepository mealInfoRepository;
     private final StorageService storageService;
+    private final ModelMapper modelMapper;
 
     @Autowired
     public UserController(
             UserRepository userRepository,
             MealInfoRepository mealInfoRepository,
-            StorageService storageService
+            StorageService storageService,
+            ModelMapper modelMapper
     ) {
         this.userRepository = userRepository;
         this.mealInfoRepository = mealInfoRepository;
         this.storageService = storageService;
+        this.modelMapper = modelMapper;
     }
 
     @PostMapping
     @Operation(summary = "주어진 정보로 회원가입")
-    public ResponseEntity<User> createUser(@RequestBody UserPostDTO userPost) {
+    public ResponseEntity<UserGetDTO> createUser(@RequestBody UserPostDTO userPost) {
         if (userRepository.existsById(userPost.getId())) {
             return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
@@ -53,21 +58,25 @@ public class UserController {
         user.setGender(userPost.getGender());
 
         var savedUser = userRepository.save(user);
-        return ResponseEntity.status(HttpStatus.CREATED).body(savedUser);
+
+        UserGetDTO userGetDTO = modelMapper.map(savedUser, UserGetDTO.class);
+        return ResponseEntity.status(HttpStatus.CREATED).body(userGetDTO);
     }
 
     @GetMapping("/{userId}")
     @Operation(summary = "주어진 ID를 가진 특정 유저 가져오기")
-    public ResponseEntity<User> getUser(@PathVariable String userId) {
+    public ResponseEntity<UserGetDTO> getUser(@PathVariable String userId) {
         Optional<User> user = userRepository.findById(userId);
-        return user
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+        if (user.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+        UserGetDTO userGetDTO = modelMapper.map(user.get(), UserGetDTO.class);
+        return ResponseEntity.status(HttpStatus.OK).body(userGetDTO);
     }
 
     @DeleteMapping("/{userId}")
     @Operation(summary = "주어진 ID를 가진 유저 삭제")
-    public ResponseEntity<User> deleteUser(@PathVariable String userId) {
+    public ResponseEntity<Object> deleteUser(@PathVariable String userId) {
         if (!userRepository.existsById(userId)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
@@ -77,7 +86,7 @@ public class UserController {
 
     @GetMapping("/{userId}/meal-info")
     @Operation(summary = "주어진 ID의 유저가 기록한 모든 식단 정보 가져오기")
-    public ResponseEntity<List<MealInfo>> getMealInfo(
+    public ResponseEntity<List<MealInfoPostDTO>> getMealInfo(
             @PathVariable String userId,
             @RequestParam(value = "date", required = false)
             @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date
@@ -87,7 +96,9 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
         List<MealInfo> mealInfos = mealInfoRepository.findByUserIdAndCreatedDate(userId, date);
-        return ResponseEntity.status(HttpStatus.OK).body(mealInfos);
+        List<MealInfoPostDTO> mealInfoPostDTOs = mealInfos.stream()
+                .map(mealInfo -> modelMapper.map(mealInfo, MealInfoPostDTO.class)).toList();
+        return ResponseEntity.status(HttpStatus.OK).body(mealInfoPostDTOs);
     }
 
     @PostMapping(value = "/{userId}/meal-info", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -115,29 +126,22 @@ public class UserController {
         mealInfo = mealInfoRepository.findById(mealInfo.getId()).get();
         user.get().addMealInfo(mealInfo);
 
-        MealInfoPostDTO mealInfoPostDTO = new MealInfoPostDTO();
-        mealInfoPostDTO.setId(mealInfo.getId());
-        mealInfoPostDTO.setIntakeAmount(intakeAmount);
-        mealInfoPostDTO.setImgPath(fileName);
-        mealInfoPostDTO.setDiary(diary);
-        mealInfoPostDTO.setCreatedAt(mealInfo.getCreatedAt());
-        mealInfoPostDTO.setLastModifiedAt(mealInfo.getLastModifiedAt());
+        MealInfoPostDTO mealInfoPostDTO = modelMapper.map(mealInfo, MealInfoPostDTO.class);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(mealInfoPostDTO);
     }
 
     @GetMapping("/{userId}/meal-info/{mealInfoId}")
     @Operation(summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보 가져오기")
-    public ResponseEntity<MealInfo> getMealInfo(@PathVariable String userId, @PathVariable Long mealInfoId) {
+    public ResponseEntity<MealInfoPostDTO> getMealInfo(@PathVariable String userId, @PathVariable Long mealInfoId) {
         Optional<User> user = userRepository.findById(userId);
         if (user.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
-        Optional<MealInfo> mealInfo = user.get().getMealInfos().stream().filter(mf -> Objects.equals(mf.getId(), mealInfoId)).findFirst();
+        Optional<MealInfo> mealInfo = user.get().getMealInfos().stream()
+                .filter(mf -> Objects.equals(mf.getId(), mealInfoId)).findFirst();
         return mealInfo
-                .map(info -> ResponseEntity.status(HttpStatus.OK).body(info))
+                .map(info -> ResponseEntity.status(HttpStatus.OK).body(modelMapper.map(info, MealInfoPostDTO.class)))
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
-
-
 }
