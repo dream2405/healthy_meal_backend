@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
-import org.springframework.util.FileSystemUtils;
+// import org.springframework.util.FileSystemUtils; 루트 디렉토리는 삭제 안함
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -21,7 +21,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.UUID;
-// import java.util.stream.Stream; // Stream API를 직접 사용하지 않으면 제거 가능
+
 
 /**
  * 로컬 파일 시스템을 사용하여 파일을 저장하고 관리하는 서비스 구현체입니다.
@@ -32,18 +32,17 @@ public class FileSystemStorageService implements StorageService {
     private static final Logger logger = LoggerFactory.getLogger(FileSystemStorageService.class);
 
     // 저장소 루트 위치를 클래스 내 상수로 정의.
-    // 이 경로는 애플리케이션이 실행되는 환경에 맞게 적절히 설정되어야 합니다.
-    // 사용자 제공 원본 경로: "/mnt/vol1/mysql_dir"
-    private static final String DEFAULT_STORAGE_LOCATION = "/mnt/vol1/mysql_dir"; // 경로 예시 수정
+    
+    private static final String DEFAULT_STORAGE_LOCATION = "/mnt/vol1/mysql_dir"; 
     private final Path rootLocation;
 
     // 파일 크기 제한 (예: 10MB)
-    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; 
 
     // 허용되지 않는 파일 확장자 목록 (보안 강화)
     private static final String[] DISALLOWED_EXTENSIONS = {
             ".exe", ".dll", ".bat", ".sh", ".jar", ".com", ".cmd", ".vb", ".vbs", ".js", ".php", ".py", ".pl", ".rb"
-            // 필요에 따라 더 많은 위험 확장자 추가
+            
     };
 
     /**
@@ -54,7 +53,7 @@ public class FileSystemStorageService implements StorageService {
         String locationToUse = DEFAULT_STORAGE_LOCATION;
         if (locationToUse == null || locationToUse.trim().isEmpty()) {
             logger.warn("Default storage location is not configured, using 'uploads' in the current directory.");
-            locationToUse = "uploads"; // 기본값 또는 안전한 폴백 경로
+            locationToUse = "uploads"; // 기본값 
         }
         this.rootLocation = Paths.get(locationToUse).toAbsolutePath().normalize();
         logger.info("File system storage root location set to: {}", this.rootLocation);
