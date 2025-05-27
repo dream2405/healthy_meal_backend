@@ -3,12 +3,15 @@ package kr.ac.dankook.ace.healthy_meal_backend.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 
+import java.time.LocalDateTime;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
@@ -17,6 +20,7 @@ import java.util.ArrayList;
 @Setter
 @Entity
 @Table(name = "meal_info")
+@EntityListeners(AuditingEntityListener.class)
 public class MealInfo {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,13 +33,13 @@ public class MealInfo {
     @Column(name = "img_path")
     private String imgPath;
 
-    @ColumnDefault("CURRENT_TIMESTAMP")
+    @CreatedDate
     @Column(name = "created_at")
-    private Instant createdAt;
+    private LocalDateTime createdAt;
 
-    @ColumnDefault("CURRENT_TIMESTAMP")
+    @LastModifiedDate
     @Column(name = "last_modified_at")
-    private Instant lastModifiedAt;
+    private LocalDateTime lastModifiedAt;
 
     @Lob
     @Column(name = "diary")
