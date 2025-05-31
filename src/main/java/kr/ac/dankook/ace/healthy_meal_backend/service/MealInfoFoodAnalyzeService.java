@@ -97,7 +97,7 @@ public class MealInfoFoodAnalyzeService {
                                 )
                         )
                 ),
-                "max_completion_tokens", 100  // 여러 음식 이름을 위해 토큰 증가
+                "max_completion_tokens", 1000  // 여러 음식 이름을 위해 토큰 증가
         );
 
         try {

@@ -5,7 +5,6 @@ import kr.ac.dankook.ace.healthy_meal_backend.entity.DietCriterion; // 기존 Di
 import kr.ac.dankook.ace.healthy_meal_backend.entity.DietScoringCriterion;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.NutriWeight;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
-import kr.ac.dankook.ace.healthy_meal_backend.model.enums.NutrientScoringType;
 import kr.ac.dankook.ace.healthy_meal_backend.model.enums.NutrientType;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.DailyIntakeRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.DietCriterionRepository; // 기존 DietCriterionRepository 주입
@@ -54,8 +53,10 @@ public class DietaryScoreService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
 
-        DailyIntake dailyIntake = dailyIntakeRepository.findByUserIdAndDay(userId, date)
-                .orElseThrow(() -> new IllegalArgumentException("DailyIntake record not found for user " + userId + " on " + date));
+        if (dailyIntakeRepository.findByUserIdAndDay(userId, date).isEmpty()) {
+            throw new IllegalArgumentException("DailyIntake record not found for user " + userId + " on " + date);
+        }
+        DailyIntake dailyIntake = dailyIntakeRepository.findByUserIdAndDay(userId, date).get(0);
 
         Map<NutrientType, Double> actualIntakes = extractActualIntakesFromDailyIntake(dailyIntake);
         logger.debug("Extracted actual intakes from DailyIntake: {}", actualIntakes);
@@ -179,8 +180,8 @@ public class DietaryScoreService {
      */
     private Optional<Double> getNutrientValueFromDietCriterion(DietCriterion criterion, NutrientType nutrient) {
         if (criterion == null) return Optional.empty();
-        Float value = null;
-        Integer intValue = null;
+        Float value;
+        Integer intValue;
 
         switch (nutrient) {
             case ENERGY:
@@ -240,8 +241,8 @@ public class DietaryScoreService {
             case TARGET_RANGE_UPPER_SENSITIVE:
                  if (ratio >= minOptimalRatio && ratio <= maxOptimalRatio) return 1.0;
                  if (ratio < minOptimalRatio) return Math.max(0, ratio / minOptimalRatio);
-                double penaltyStartUpperTRUS = (scoringCriterion != null && scoringCriterion.getPenaltyStartRatioUpper() != null) ? scoringCriterion.getPenaltyStartRatioUpper() : 1.5;
-                if (penaltyStartUpperTRUS <= maxOptimalRatio) penaltyStartUpperTRUS = maxOptimalRatio + 0.1;
+                 double penaltyStartUpperTRUS = (scoringCriterion != null && scoringCriterion.getPenaltyStartRatioUpper() != null) ? scoringCriterion.getPenaltyStartRatioUpper() : 1.5;
+                 if (penaltyStartUpperTRUS <= maxOptimalRatio) penaltyStartUpperTRUS = maxOptimalRatio + 0.1;
                  return Math.max(0, 1.0 - (ratio - maxOptimalRatio) / (penaltyStartUpperTRUS - maxOptimalRatio));
 
             case ENOUGH_IS_GOOD:

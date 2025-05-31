@@ -37,8 +37,8 @@ public class FileSystemStorageService implements StorageService {
     private static final String DEFAULT_STORAGE_LOCATION = "/mnt/vol1/mysql_dir/img";
     private final Path rootLocation;
 
-    // 파일 크기 제한 (예: 10MB)
-    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; 
+    // 파일 크기 제한 = 100MB
+    private static final long MAX_FILE_SIZE = 100 * 1024 * 1024;
 
     // 허용되지 않는 파일 확장자 목록 (보안 강화)
     private static final String[] DISALLOWED_EXTENSIONS = {

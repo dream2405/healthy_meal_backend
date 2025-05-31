@@ -2,6 +2,7 @@ package kr.ac.dankook.ace.healthy_meal_backend.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.transaction.Transactional;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.Food;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.MealInfo;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
@@ -66,6 +67,7 @@ public class FoodController {
     @PutMapping("/{foodId}/meal-info/{mealInfoId}")
     @Operation(summary = "주어진 ID의 음식이 주어진 ID의 식단정보로 판별 정보 추가",
             description = "멱등성 - 여러번 추가해도 하나만 추가됨")
+    @Transactional
     public ResponseEntity<Object> createFoodMealInfoRelation(@PathVariable long foodId, @PathVariable long mealInfoId) {
         var food = foodRepository.findById(foodId);
         var mealInfo = mealInfoRepository.findById(mealInfoId);
