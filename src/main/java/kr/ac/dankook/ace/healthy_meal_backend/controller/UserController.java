@@ -7,8 +7,10 @@ import kr.ac.dankook.ace.healthy_meal_backend.dto.UserGetDTO;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.MealInfo;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
 import kr.ac.dankook.ace.healthy_meal_backend.dto.UserPostDTO;
+import kr.ac.dankook.ace.healthy_meal_backend.repository.FoodRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.MealInfoRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.UserRepository;
+import kr.ac.dankook.ace.healthy_meal_backend.service.MealInfoFoodAnalyzeService;
 import kr.ac.dankook.ace.healthy_meal_backend.service.StorageService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/users")
@@ -28,20 +31,26 @@ import java.util.*;
 public class UserController {
     private final UserRepository userRepository;
     private final MealInfoRepository mealInfoRepository;
+    private final FoodRepository foodRepository;
     private final StorageService storageService;
     private final ModelMapper modelMapper;
+    private final MealInfoFoodAnalyzeService mealInfoFoodAnalyzeService;
 
     @Autowired
     public UserController(
             UserRepository userRepository,
             MealInfoRepository mealInfoRepository,
+            FoodRepository foodRepository,
             StorageService storageService,
-            ModelMapper modelMapper
+            ModelMapper modelMapper,
+            MealInfoFoodAnalyzeService mealInfoFoodAnalyzeService
     ) {
         this.userRepository = userRepository;
         this.mealInfoRepository = mealInfoRepository;
+        this.foodRepository = foodRepository;
         this.storageService = storageService;
         this.modelMapper = modelMapper;
+        this.mealInfoFoodAnalyzeService = mealInfoFoodAnalyzeService;
     }
 
     @PostMapping
@@ -143,5 +152,30 @@ public class UserController {
         return mealInfo
                 .map(info -> ResponseEntity.status(HttpStatus.OK).body(modelMapper.map(info, MealInfoPostDTO.class)))
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+    }
+
+    @PostMapping("/{userId}/meal-info/{mealInfoId}/analyze")
+    @Operation(
+            summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보를 gpt가 분석",
+            description = "식단 정보와 음식을 연결")
+    public ResponseEntity<?> analyzeMealInfo(@PathVariable String userId, @PathVariable Long mealInfoId) {
+        Optional<User> user = userRepository.findById(userId);
+        Optional<MealInfo> mealInfo = mealInfoRepository.findById(mealInfoId);
+        if (user.isEmpty() || mealInfo.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
+        List<String> majorCategories = foodRepository.findDistinctMajorCategoryNative();
+        List<String> majorCategoriesResult = mealInfoFoodAnalyzeService.analyzeImage(mealInfo.get().getImgPath(), majorCategories);
+
+        List<String> foodNames = new ArrayList<>();
+        for (String majorCategory : majorCategoriesResult) {
+            var representativeFoods = foodRepository.findDistinctRepresentativeFoodByMajorCategory(majorCategory);
+            for (String representativeFood : representativeFoods) {
+                foodNames.addAll(foodRepository.findDistinctNameByRepresentativeFood(representativeFood));
+            }
+        }
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(foodNames);
     }
 }

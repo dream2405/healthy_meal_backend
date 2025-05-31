@@ -22,4 +22,16 @@ public interface FoodRepository extends CrudRepository<Food, Long> {
             @Param("representativeFood") String representativeFood,
             @Param("majorCategory") String majorCategory
     );
+
+    @Query(value = "SELECT DISTINCT major_category FROM food WHERE major_category IS NOT NULL",
+            nativeQuery = true)
+    List<String> findDistinctMajorCategoryNative();
+
+    @Query(value = "SELECT DISTINCT representative_food FROM food WHERE major_category = :majorCategory AND representative_food IS NOT NULL",
+            nativeQuery = true)
+    List<String> findDistinctRepresentativeFoodByMajorCategory(@Param("majorCategory") String majorCategory);
+
+    @Query(value = "SELECT DISTINCT name FROM food WHERE representative_food = :representativeFood",
+            nativeQuery = true)
+    List<String> findDistinctNameByRepresentativeFood(@Param("representativeFood") String representativeFood);
 }

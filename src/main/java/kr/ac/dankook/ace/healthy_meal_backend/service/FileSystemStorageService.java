@@ -19,6 +19,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -50,12 +51,7 @@ public class FileSystemStorageService implements StorageService {
      * 저장소 루트 위치를 초기화합니다.
      */
     public FileSystemStorageService() {
-        String locationToUse = DEFAULT_STORAGE_LOCATION;
-        if (locationToUse == null || locationToUse.trim().isEmpty()) {
-            logger.warn("Default storage location is not configured, using 'uploads' in the current directory.");
-            locationToUse = "uploads"; // 기본값 
-        }
-        this.rootLocation = Paths.get(locationToUse).toAbsolutePath().normalize();
+        this.rootLocation = Paths.get(DEFAULT_STORAGE_LOCATION).toAbsolutePath().normalize();
         logger.info("File system storage root location set to: {}", this.rootLocation);
     }
 
@@ -112,8 +108,7 @@ public class FileSystemStorageService implements StorageService {
 
         // 2. 파일 확장자 검증
         final String finalExtension = extension; // 람다식 내부에서 사용하기 위해 final로 선언
-        boolean isDisallowed = Arrays.stream(DISALLOWED_EXTENSIONS)
-                                     .anyMatch(disallowedExt -> disallowedExt.equals(finalExtension));
+        boolean isDisallowed = Arrays.asList(DISALLOWED_EXTENSIONS).contains(finalExtension);
         if (isDisallowed) {
             logger.warn("Attempted to upload a file with a disallowed extension ({}): {}",
                     extension, originalFilename);
@@ -297,6 +292,16 @@ public class FileSystemStorageService implements StorageService {
                     e,
                     StorageException.ErrorType.DELETE_ALL_FAILED
             );
+        }
+    }
+
+    @Override
+    public String convertImageToBase64(String fileName) {
+        try {
+            byte[] imageBytes = Files.readAllBytes(load(fileName));
+            return Base64.getEncoder().encodeToString(imageBytes);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 }
