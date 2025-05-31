@@ -17,4 +17,6 @@ public interface StorageService {
     void delete(String filename);
 
     void deleteAll();
+
+    String convertImageToBase64(String fileName);
 }
