@@ -20,7 +20,7 @@ public interface DietCriterionRepository extends JpaRepository<DietCriterion, In
      * 나이는 startAge와 endAge 사이에 있어야 하며, 성별이 일치해야 합니다.
      *
      * @param age 사용자의 현재 나이
-     * @param gender 사용자의 성별 ('M', 'F', 또는 기타 정의된 값)
+     * @param gender 사용자의 성별 ('M', 'F')
      * @return 해당 조건에 맞는 DietCriterion (Optional)
      */
     @Query("SELECT dc FROM DietCriterion dc WHERE :age >= dc.startAge AND :age <= dc.endAge AND dc.gender = :gender")
