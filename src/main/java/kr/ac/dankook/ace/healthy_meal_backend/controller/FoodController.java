@@ -8,6 +8,7 @@ import kr.ac.dankook.ace.healthy_meal_backend.entity.MealInfo;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.FoodRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.MealInfoRepository;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,11 +22,13 @@ import java.util.List;
 public class FoodController {
     private final FoodRepository foodRepository;
     private final MealInfoRepository mealInfoRepository;
+    private final ModelMapper modelMapper;
 
     @Autowired
-    public FoodController(final FoodRepository foodRepository, final MealInfoRepository mealInfoRepository) {
+    public FoodController(final FoodRepository foodRepository, final MealInfoRepository mealInfoRepository, final ModelMapper modelMapper) {
         this.foodRepository = foodRepository;
         this.mealInfoRepository = mealInfoRepository;
+        this.modelMapper = modelMapper;
     }
 
     @GetMapping()

@@ -12,7 +12,6 @@ import java.util.Optional;
  */
 @Repository
 public interface DietScoringCriterionRepository extends JpaRepository<DietScoringCriterion, Long> {
-
     /**
      * 영양소 이름으로 특정 DietScoringCriterion을 조회합니다.
      * DietaryScoreService에서 각 영양소별 점수 계산 기준을 가져올 때 사용됩니다.

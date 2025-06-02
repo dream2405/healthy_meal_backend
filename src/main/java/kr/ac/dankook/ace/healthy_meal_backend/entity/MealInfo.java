@@ -9,8 +9,6 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.Instant;
-
 import java.time.LocalDateTime;
 import java.util.Iterator;
 import java.util.List;
@@ -28,7 +26,7 @@ public class MealInfo {
     private Long id;
 
     @Column(name = "intake_amount")
-    private Integer intakeAmount;
+    private Float intakeAmount;
 
     @Column(name = "img_path")
     private String imgPath;
