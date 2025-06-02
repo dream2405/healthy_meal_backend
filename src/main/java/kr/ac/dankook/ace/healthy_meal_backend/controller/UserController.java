@@ -15,6 +15,7 @@ import kr.ac.dankook.ace.healthy_meal_backend.repository.DailyIntakeRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.FoodRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.MealInfoRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.UserRepository;
+import kr.ac.dankook.ace.healthy_meal_backend.service.DietaryScoreService;
 import kr.ac.dankook.ace.healthy_meal_backend.service.MealInfoFoodAnalyzeService;
 import kr.ac.dankook.ace.healthy_meal_backend.service.StorageService;
 import org.modelmapper.ModelMapper;
@@ -41,6 +42,7 @@ public class UserController {
     private final ModelMapper modelMapper;
     private final MealInfoFoodAnalyzeService mealInfoFoodAnalyzeService;
     private final FoodController foodController;
+    private final DietaryScoreService dietaryScoreService;
 
     @Autowired
     public UserController(
@@ -51,7 +53,8 @@ public class UserController {
             StorageService storageService,
             ModelMapper modelMapper,
             MealInfoFoodAnalyzeService mealInfoFoodAnalyzeService,
-            FoodController foodController
+            FoodController foodController,
+            DietaryScoreService dietaryScoreService
     ) {
         this.userRepository = userRepository;
         this.mealInfoRepository = mealInfoRepository;
@@ -61,6 +64,7 @@ public class UserController {
         this.modelMapper = modelMapper;
         this.mealInfoFoodAnalyzeService = mealInfoFoodAnalyzeService;
         this.foodController = foodController;
+        this.dietaryScoreService = dietaryScoreService;
     }
 
     @PostMapping
@@ -161,9 +165,10 @@ public class UserController {
 
     @PatchMapping("/{userId}/meal-info/{mealInfoId}")
     @Operation(summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보 수정")
+    @Transactional
     public ResponseEntity<MealInfoPostDTO> updateMealInfo(
             @PathVariable String userId, @PathVariable Long mealInfoId,
-            @RequestParam(required = false) Integer amount, @RequestParam(required = false) String diary) {
+            @RequestParam(required = false) Float amount, @RequestParam(required = false) String diary) {
         // 사용자 존재 확인
         Optional<User> user = userRepository.findById(userId);
         if (user.isEmpty()) {
@@ -200,11 +205,15 @@ public class UserController {
         MealInfo updatedMealInfo = mealInfoRepository.save(mealInfo);
         MealInfoPostDTO mealInfoPostDTO = modelMapper.map(updatedMealInfo, MealInfoPostDTO.class);
 
+        // 일별 섭취 기록 업데이트
+        updateDailyIntake(mealInfo.getUser().getId(), mealInfo.getCreatedAt().toLocalDate());
+
         return ResponseEntity.ok(mealInfoPostDTO);
     }
 
     @DeleteMapping("/{userId}/meal-info/{mealInfoId}")
     @Operation(summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보 삭제")
+    @Transactional
     public ResponseEntity<Object> deleteMealInfo(@PathVariable String userId, @PathVariable Long mealInfoId) {
         // 사용자 존재 확인
         Optional<User> user = userRepository.findById(userId);
@@ -236,14 +245,19 @@ public class UserController {
 
             // 데이터베이스에서 삭제
             mealInfoRepository.delete(mealInfo);
-
-            return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
-
         } catch (Exception e) {
             // 파일 삭제 실패해도 데이터는 삭제
             mealInfoRepository.delete(mealInfo);
-            return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
         }
+
+        // 일별 섭취 기록 업데이트
+        var dailyIntake = dailyIntakeRepository.findByUserIdAndDay(userId, mealInfo.getCreatedAt().toLocalDate());
+        if (!dailyIntake.isEmpty()) {
+            deleteDailyIntake(userId, dailyIntake.get(0).getId());
+        }
+        updateDailyIntake(mealInfo.getUser().getId(), mealInfo.getCreatedAt().toLocalDate());
+
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
     @PostMapping("/{userId}/meal-info/{mealInfoId}/analyze")
@@ -277,7 +291,7 @@ public class UserController {
             if (!foodResult.isEmpty())
                 foodController.createFoodMealInfoRelation(foodResult.get(0).getId(), mealInfoId);
         }
-        if (!foodNames.isEmpty())
+        if (foodNames.isEmpty())
             foodNames.add("판단 실패!");
         return ResponseEntity.status(HttpStatus.CREATED).body(foodNames);
     }
@@ -393,6 +407,20 @@ public class UserController {
                 Optional.ofNullable(food.getSugarsG()).orElse(0.0).floatValue());
         dailyIntake.setSodiumMg(dailyIntake.getSodiumMg() +
                 Optional.ofNullable(food.getSodiumMg()).orElse(0.0).floatValue());
+    }
+
+    @PutMapping("/{userId}/daily-intake/score")
+    @Operation(summary = "주어진 ID의 유저가 주어진 날짜의 일별섭취기록 점수 업데이트")
+    public ResponseEntity<DailyIntakeDTO> updateDailyIntakeScore(
+            @PathVariable String userId,
+            @RequestParam(value = "date")
+            @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
+        try {
+            DailyIntake dailyIntake = dietaryScoreService.calculateScoreFromDailyIntake(userId, date);
+            return ResponseEntity.ok(modelMapper.map(dailyIntake, DailyIntakeDTO.class));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
     }
 
     @DeleteMapping("/{userId}/daily-intake/{dailyIntakeId}")
