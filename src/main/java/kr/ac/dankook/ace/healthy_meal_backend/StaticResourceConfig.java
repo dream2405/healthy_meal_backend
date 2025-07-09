@@ -12,7 +12,7 @@ public class StaticResourceConfig implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/uploads/**")
-                .addResourceLocations("file:/mnt/vol1/mysql_dir/img")
+                .addResourceLocations("file:/Users/jinwoo/개발/Capstone/Healthymeal Backend/healthymeal_backend_img")
                 .setCacheControl(CacheControl.maxAge(Duration.ofDays(30)));
     }
 }

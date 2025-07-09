@@ -15,10 +15,10 @@ public class AppConfig {
         ModelMapper mapper = new ModelMapper();
         mapper.getConfiguration()
                 .setMatchingStrategy(MatchingStrategies.STRICT);
-/*        mapper.createTypeMap(Food.class, FoodDTO.class)
+        mapper.createTypeMap(Food.class, FoodDTO.class)
                 .addMappings(mapping -> {
                     mapping.map(Food::getId, FoodDTO::setId);
-                });*/
+                });
         return mapper;
     }
 }
