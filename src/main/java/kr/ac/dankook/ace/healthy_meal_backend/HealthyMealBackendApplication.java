@@ -23,10 +23,10 @@ public class HealthyMealBackendApplication {
         TimeZone.setDefault(TimeZone.getTimeZone("Asia/Seoul"));
     }
 
-//    @Bean
-//    public ApplicationRunner configure(FoodRepository foodRepository) {
-//        return env -> {
-//            System.out.println(foodRepository.findById(1L));
-//        };
-//    }
+    @Bean
+    public ApplicationRunner configure(FoodRepository foodRepository) {
+        return env -> {
+            System.out.println(foodRepository.findById(1L));
+        };
+    }
 }
