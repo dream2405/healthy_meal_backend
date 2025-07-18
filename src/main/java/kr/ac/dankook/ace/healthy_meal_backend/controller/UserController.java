@@ -1,6 +1,7 @@
 package kr.ac.dankook.ace.healthy_meal_backend.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.transaction.Transactional;
 import kr.ac.dankook.ace.healthy_meal_backend.dto.DailyIntakeDTO;
@@ -10,7 +11,6 @@ import kr.ac.dankook.ace.healthy_meal_backend.entity.DailyIntake;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.Food;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.MealInfo;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
-import kr.ac.dankook.ace.healthy_meal_backend.dto.UserPostDTO;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.DailyIntakeRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.FoodRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.MealInfoRepository;
@@ -19,7 +19,6 @@ import kr.ac.dankook.ace.healthy_meal_backend.service.DietaryScoreService;
 import kr.ac.dankook.ace.healthy_meal_backend.service.MealInfoFoodAnalyzeService;
 import kr.ac.dankook.ace.healthy_meal_backend.service.StorageService;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -44,7 +43,6 @@ public class UserController {
     private final FoodController foodController;
     private final DietaryScoreService dietaryScoreService;
 
-    @Autowired
     public UserController(
             UserRepository userRepository,
             MealInfoRepository mealInfoRepository,
@@ -68,7 +66,7 @@ public class UserController {
     }
 
     @GetMapping("/{userId}")
-    @Operation(summary = "주어진 ID를 가진 특정 유저 가져오기")
+    @Operation(summary = "주어진 ID를 가진 특정 유저 가져오기", security = @SecurityRequirement(name = "BearerAuth"))
     public ResponseEntity<UserGetDTO> getUser(@PathVariable String userId) {
         Optional<User> user = userRepository.findById(userId);
         if (user.isEmpty()) {
@@ -79,7 +77,7 @@ public class UserController {
     }
 
     @DeleteMapping("/{userId}")
-    @Operation(summary = "주어진 ID를 가진 유저 삭제")
+    @Operation(summary = "주어진 ID를 가진 유저 삭제", security = @SecurityRequirement(name = "BearerAuth"))
     public ResponseEntity<Object> deleteUser(@PathVariable String userId) {
         if (!userRepository.existsById(userId)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
@@ -89,7 +87,7 @@ public class UserController {
     }
 
     @GetMapping("/{userId}/meal-info")
-    @Operation(summary = "주어진 ID의 유저가 기록한 모든 식단 정보 가져오기")
+    @Operation(summary = "주어진 ID의 유저가 기록한 모든 식단 정보 가져오기", security = @SecurityRequirement(name = "BearerAuth"))
     public ResponseEntity<List<MealInfoPostDTO>> getMealInfo(
             @PathVariable String userId,
             @RequestParam(value = "date", required = false)
@@ -106,7 +104,7 @@ public class UserController {
     }
 
     @PostMapping(value = "/{userId}/meal-info", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "주어진 정보로 주어진 ID의 유저가 식단정보 기록")
+    @Operation(summary = "주어진 정보로 주어진 ID의 유저가 식단정보 기록", security = @SecurityRequirement(name = "BearerAuth"))
     public ResponseEntity<MealInfoPostDTO> createMealInfo(
             @PathVariable String userId,
             @RequestPart("img") MultipartFile file
@@ -131,7 +129,7 @@ public class UserController {
     }
 
     @GetMapping("/{userId}/meal-info/{mealInfoId}")
-    @Operation(summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보 가져오기")
+    @Operation(summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보 가져오기", security = @SecurityRequirement(name = "BearerAuth"))
     public ResponseEntity<MealInfoPostDTO> getMealInfo(@PathVariable String userId, @PathVariable Long mealInfoId) {
         Optional<User> user = userRepository.findById(userId);
         if (user.isEmpty()) {
@@ -145,7 +143,7 @@ public class UserController {
     }
 
     @PatchMapping("/{userId}/meal-info/{mealInfoId}")
-    @Operation(summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보 수정")
+    @Operation(summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보 수정", security = @SecurityRequirement(name = "BearerAuth"))
     @Transactional
     public ResponseEntity<MealInfoPostDTO> updateMealInfo(
             @PathVariable String userId, @PathVariable Long mealInfoId,
@@ -193,7 +191,7 @@ public class UserController {
     }
 
     @DeleteMapping("/{userId}/meal-info/{mealInfoId}")
-    @Operation(summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보 삭제")
+    @Operation(summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보 삭제", security = @SecurityRequirement(name = "BearerAuth"))
     @Transactional
     public ResponseEntity<Object> deleteMealInfo(@PathVariable String userId, @PathVariable Long mealInfoId) {
         // 사용자 존재 확인
@@ -244,7 +242,7 @@ public class UserController {
     @PostMapping("/{userId}/meal-info/{mealInfoId}/analyze")
     @Operation(
             summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보를 gpt가 분석",
-            description = "식단 정보와 음식을 연결")
+            description = "식단 정보와 음식을 연결", security = @SecurityRequirement(name = "BearerAuth"))
     @Transactional
     public ResponseEntity<List<String>> analyzeMealInfo(@PathVariable String userId, @PathVariable Long mealInfoId) {
         Optional<User> user = userRepository.findById(userId);
@@ -278,7 +276,7 @@ public class UserController {
     }
 
     @GetMapping("/{userId}/daily-intake")
-    @Operation(summary = "주어진 ID의 유저의 모든 일별섭취기록 가져오기")
+    @Operation(summary = "주어진 ID의 유저의 모든 일별섭취기록 가져오기", security = @SecurityRequirement(name = "BearerAuth"))
     public ResponseEntity<List<DailyIntakeDTO>> getDailyIntakeByUserId(@PathVariable String userId) {
         if (!userRepository.existsById(userId)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
@@ -290,7 +288,7 @@ public class UserController {
     }
 
     @GetMapping("/{userId}/daily-intake/{dailyIntakeId}")
-    @Operation(summary = "주어진 ID의 유저의 주어진 ID의 일별섭취기록 가져오기")
+    @Operation(summary = "주어진 ID의 유저의 주어진 ID의 일별섭취기록 가져오기", security = @SecurityRequirement(name = "BearerAuth"))
     public ResponseEntity<DailyIntakeDTO> getDailyIntake(@PathVariable String userId, @PathVariable Integer dailyIntakeId) {
         if(!userRepository.existsById(userId)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
@@ -303,7 +301,7 @@ public class UserController {
     }
 
     @PutMapping("/{userId}/daily-intake")
-    @Operation(summary = "주어진 ID의 유저가 일별섭취기록 생성/업데이트")
+    @Operation(summary = "주어진 ID의 유저가 일별섭취기록 생성/업데이트", security = @SecurityRequirement(name = "BearerAuth"))
     @Transactional
     public ResponseEntity<DailyIntakeDTO> updateDailyIntake(
             @PathVariable String userId,
@@ -391,7 +389,7 @@ public class UserController {
     }
 
     @PutMapping("/{userId}/daily-intake/score")
-    @Operation(summary = "주어진 ID의 유저가 주어진 날짜의 일별섭취기록 점수 업데이트")
+    @Operation(summary = "주어진 ID의 유저가 주어진 날짜의 일별섭취기록 점수 업데이트", security = @SecurityRequirement(name = "BearerAuth"))
     public ResponseEntity<DailyIntakeDTO> updateDailyIntakeScore(
             @PathVariable String userId,
             @RequestParam(value = "date")
@@ -405,7 +403,7 @@ public class UserController {
     }
 
     @DeleteMapping("/{userId}/daily-intake/{dailyIntakeId}")
-    @Operation(summary = "주어진 ID의 유저가 주어진 ID의 일별섭취기록 삭제")
+    @Operation(summary = "주어진 ID의 유저가 주어진 ID의 일별섭취기록 삭제", security = @SecurityRequirement(name = "BearerAuth"))
     public ResponseEntity<?> deleteDailyIntake(@PathVariable String userId, @PathVariable Integer dailyIntakeId) {
         if (dailyIntakeRepository.existsByUserIdAndId(userId, dailyIntakeId)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
