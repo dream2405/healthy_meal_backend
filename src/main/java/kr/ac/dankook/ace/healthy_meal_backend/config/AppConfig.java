@@ -1,4 +1,4 @@
-package kr.ac.dankook.ace.healthy_meal_backend;
+package kr.ac.dankook.ace.healthy_meal_backend.config;
 
 import kr.ac.dankook.ace.healthy_meal_backend.dto.FoodDTO;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.Food;

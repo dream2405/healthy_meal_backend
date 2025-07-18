@@ -39,3 +39,6 @@ out/
 
 # secrets
 /src/main/resources/application-secret.properties
+
+# macOS
+.DS_Store
