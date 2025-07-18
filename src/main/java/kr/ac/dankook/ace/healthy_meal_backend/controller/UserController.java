@@ -67,25 +67,6 @@ public class UserController {
         this.dietaryScoreService = dietaryScoreService;
     }
 
-    @PostMapping
-    @Operation(summary = "주어진 정보로 회원가입")
-    public ResponseEntity<UserGetDTO> createUser(@RequestBody UserPostDTO userPost) {
-        if (userRepository.existsById(userPost.getId())) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
-        }
-
-        User user = new User();
-        user.setId(userPost.getId());
-        user.setHashedPassword(userPost.getHashedPassword());
-        user.setBirthday(userPost.getBirthday());
-        user.setGender(userPost.getGender());
-
-        var savedUser = userRepository.save(user);
-
-        UserGetDTO userGetDTO = modelMapper.map(savedUser, UserGetDTO.class);
-        return ResponseEntity.status(HttpStatus.CREATED).body(userGetDTO);
-    }
-
     @GetMapping("/{userId}")
     @Operation(summary = "주어진 ID를 가진 특정 유저 가져오기")
     public ResponseEntity<UserGetDTO> getUser(@PathVariable String userId) {

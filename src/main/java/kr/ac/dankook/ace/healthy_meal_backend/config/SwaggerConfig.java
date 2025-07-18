@@ -1,4 +1,4 @@
-package kr.ac.dankook.ace.healthy_meal_backend;
+package kr.ac.dankook.ace.healthy_meal_backend.config;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
