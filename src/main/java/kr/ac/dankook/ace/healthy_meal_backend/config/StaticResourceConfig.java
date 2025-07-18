@@ -16,7 +16,7 @@ public class StaticResourceConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/uploads/**")
+        registry.addResourceHandler("/uploads/**")      // /uploads/로 접근하는 API에 정적파일 리턴해줌..
                 .addResourceLocations("file:"+DEFAULT_STORAGE_LOCATION)
                 .setCacheControl(CacheControl.maxAge(Duration.ofDays(30)));
     }
