@@ -2,6 +2,7 @@ package kr.ac.dankook.ace.healthy_meal_backend.security;
 
 import java.io.IOException;
 
+import org.jetbrains.annotations.Nullable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -22,12 +23,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        System.out.println("JwtAuthFiltering..");
         String token = resolveToken(request);
 
         String path = request.getRequestURI();
         if (path.equals("/login") || path.equals("/signup")) {
-            System.out.println("JwtAuthenticationFilter 없이 통과!");
+            System.out.println("✅ JwtAuthenticationFilter: 인증 없이 통과 → " + request.getRequestURI());
             filterChain.doFilter(request, response);
             return;
         }
@@ -43,6 +43,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
         filterChain.doFilter(request, response);
     }
 
+    @Nullable
     private String resolveToken(HttpServletRequest request) {
         String bearer = request.getHeader("Authorization");
         if (bearer != null && bearer.startsWith("Bearer ")) {

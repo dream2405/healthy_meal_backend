@@ -76,9 +76,4 @@ public class AuthController {
 
         return ResponseEntity.ok(new TokenResponseDTO(token));
     }
-
-    @GetMapping("/api/test")
-    public String hello() {
-        return "Swagger Hello!";
-    }
 }
