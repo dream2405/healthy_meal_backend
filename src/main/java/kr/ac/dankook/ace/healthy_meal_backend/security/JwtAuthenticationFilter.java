@@ -26,7 +26,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
         String token = resolveToken(request);
 
         String path = request.getRequestURI();
-        if (path.equals("/login") || path.equals("/signup")) {
+        if (path.equals("/login") || path.equals("/signup") || path.startsWith("/uploads/")) {
             System.out.println("✅ JwtAuthenticationFilter: 인증 없이 통과 → " + request.getRequestURI());
             filterChain.doFilter(request, response);
             return;

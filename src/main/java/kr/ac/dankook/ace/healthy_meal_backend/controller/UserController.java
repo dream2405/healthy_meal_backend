@@ -16,9 +16,12 @@ import kr.ac.dankook.ace.healthy_meal_backend.repository.FoodRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.MealInfoRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.UserRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.service.DietaryScoreService;
+import kr.ac.dankook.ace.healthy_meal_backend.service.FileSystemStorageService;
 import kr.ac.dankook.ace.healthy_meal_backend.service.MealInfoFoodAnalyzeService;
 import kr.ac.dankook.ace.healthy_meal_backend.service.StorageService;
 import org.modelmapper.ModelMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -42,6 +45,8 @@ public class UserController {
     private final MealInfoFoodAnalyzeService mealInfoFoodAnalyzeService;
     private final FoodController foodController;
     private final DietaryScoreService dietaryScoreService;
+
+    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
     public UserController(
             UserRepository userRepository,
@@ -109,10 +114,13 @@ public class UserController {
             @PathVariable String userId,
             @RequestPart("img") MultipartFile file
     ) {
+        // @PathVariable 유효성 검증
         Optional<User> user = userRepository.findById(userId);
         if (user.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
+
+        logger.info("식단사진저장 <시작>");
         String fileName = storageService.store(file);
 
         MealInfo mealInfo = new MealInfo();
@@ -124,8 +132,64 @@ public class UserController {
         user.get().addMealInfo(mealInfo);
 
         MealInfoPostDTO mealInfoPostDTO = modelMapper.map(mealInfo, MealInfoPostDTO.class);
-
+        logger.info("식단사진저장 <완료>");
         return ResponseEntity.status(HttpStatus.CREATED).body(mealInfoPostDTO);
+    }
+
+    @PostMapping("/{userId}/meal-info/{mealInfoId}/analyze")
+    @Operation(
+            summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보를 gpt가 분석",
+            description = "식단 정보와 음식을 연결", security = @SecurityRequirement(name = "BearerAuth"))
+    @Transactional
+    public ResponseEntity<List<String>> analyzeMealInfo(@PathVariable String userId, @PathVariable Long mealInfoId) {
+        Optional<User> user = userRepository.findById(userId);
+        Optional<MealInfo> mealInfo = mealInfoRepository.findById(mealInfoId);
+        if (user.isEmpty() || mealInfo.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
+        String fileName = mealInfo.get().getImgPath();
+        List<String> foodNames = new ArrayList<>();
+        /*
+        // 1차 GPT 이미지분석 : 대분류 카테고리
+        logger.info("대분류 카테고리 GPT 분석 <시작>");
+        List<String> majorCategories = foodRepository.findDistinctMajorCategoryNative();
+        List<String> majorCategoriesResult = mealInfoFoodAnalyzeService.analyzeImage(fileName, majorCategories);
+        logger.info("대분류 카테고리 GPT 분석 <완료> && 입력목록 : {} \n&& 출력결과 : {}", majorCategories, majorCategoriesResult);
+        int outercount = 1;
+        for (String majorCategory : majorCategoriesResult) {
+            // 2차 GPT 이미지분석 : 대표식품명 카테고리
+            logger.info("대표식품명 카테고리 GPT 분석 {}회 <시작>", outercount);
+            var representativeFoods = foodRepository.findDistinctRepresentativeFoodByMajorCategory(majorCategory);
+            var representativeFoodsResult = mealInfoFoodAnalyzeService.analyzeImage(fileName, representativeFoods);
+            logger.info("대표식품명 카테고리 GPT 분석 {}회 <완료> && 입력목록 : {} \n&& 출력결과 : {}", outercount, representativeFoods, representativeFoodsResult);
+            int innercount = 1;
+            for (String representativeFood : representativeFoodsResult) {
+                // 3차 GPT 이미지분석 : 최종식품명 카테고리
+                logger.info("최종식품명 카테고리 GPT 분석 {}회 <시작>", innercount);
+                var foods = foodRepository.findDistinctNameByRepresentativeFood(representativeFood);
+                foodNames.addAll(mealInfoFoodAnalyzeService.analyzeImage(fileName, foods));
+                logger.info("최종식품명 카테고리 GPT 분석 {}회 <완료> && 입력목록 : {} \n&& 출력결과 : {}", innercount, foods, foodNames);
+                innercount += 1;
+            }
+            outercount += 1;
+        }*/
+        List<String> foods;
+        logger.info("식품목록 GPT 분석 <시작>");
+        foods = mealInfoFoodAnalyzeService.analyzeImage(fileName, new ArrayList<>());
+        logger.info("식품목록 GPT 분석 <완료> \n && 출력결과 : {}", foods);
+        foodNames.addAll(foods);
+
+        // Food Table을 조회해 해당되는 음식 엔티티 추출
+        for (String foodName : foodNames) {
+            List<Food> foodResult = foodRepository.findAllByName(foodName);
+            logger.info("Food Table 조회결과 -> 입력 : {}, 출력 : {}", foodName, foodResult);
+            if (!foodResult.isEmpty())
+                foodController.createFoodMealInfoRelation(foodResult.get(0).getId(), mealInfoId);
+        }
+        if (foodNames.isEmpty())
+            foodNames.add("판단 실패!");
+        return ResponseEntity.status(HttpStatus.CREATED).body(foodNames);
     }
 
     @GetMapping("/{userId}/meal-info/{mealInfoId}")
@@ -237,42 +301,6 @@ public class UserController {
         updateDailyIntake(mealInfo.getUser().getId(), mealInfo.getCreatedAt().toLocalDate());
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
-    }
-
-    @PostMapping("/{userId}/meal-info/{mealInfoId}/analyze")
-    @Operation(
-            summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보를 gpt가 분석",
-            description = "식단 정보와 음식을 연결", security = @SecurityRequirement(name = "BearerAuth"))
-    @Transactional
-    public ResponseEntity<List<String>> analyzeMealInfo(@PathVariable String userId, @PathVariable Long mealInfoId) {
-        Optional<User> user = userRepository.findById(userId);
-        Optional<MealInfo> mealInfo = mealInfoRepository.findById(mealInfoId);
-        if (user.isEmpty() || mealInfo.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
-
-        String fileName = mealInfo.get().getImgPath();
-        List<String> majorCategories = foodRepository.findDistinctMajorCategoryNative();
-        List<String> majorCategoriesResult = mealInfoFoodAnalyzeService.analyzeImage(fileName, majorCategories);
-
-        List<String> foodNames = new ArrayList<>();
-        for (String majorCategory : majorCategoriesResult) {
-            var representativeFoods = foodRepository.findDistinctRepresentativeFoodByMajorCategory(majorCategory);
-            var representativeFoodsResult = mealInfoFoodAnalyzeService.analyzeImage(fileName, representativeFoods);
-            for (String representativeFood : representativeFoodsResult) {
-                var foods = foodRepository.findDistinctNameByRepresentativeFood(representativeFood);
-                foodNames.addAll(mealInfoFoodAnalyzeService.analyzeImage(fileName, foods));
-            }
-        }
-
-        for (String foodName : foodNames) {
-            List<Food> foodResult = foodRepository.findAllByName(foodName);
-            if (!foodResult.isEmpty())
-                foodController.createFoodMealInfoRelation(foodResult.get(0).getId(), mealInfoId);
-        }
-        if (foodNames.isEmpty())
-            foodNames.add("판단 실패!");
-        return ResponseEntity.status(HttpStatus.CREATED).body(foodNames);
     }
 
     @GetMapping("/{userId}/daily-intake")

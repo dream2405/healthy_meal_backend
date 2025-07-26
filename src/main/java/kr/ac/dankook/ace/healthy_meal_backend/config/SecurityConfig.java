@@ -39,7 +39,8 @@ public class SecurityConfig {
                                     "/swagger-ui/**",
                                     "/v3/api-docs/**",
                                     "/swagger-resources/**",
-                                    "/webjars/**"
+                                    "/webjars/**",
+                                        "/uploads/**"
                                     ).permitAll()
                                 .anyRequest().authenticated()
                 )
@@ -49,11 +50,11 @@ public class SecurityConfig {
 
     @Bean
     public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception{
-        return http.getSharedObject(AuthenticationManagerBuilder.class)
+        AuthenticationManagerBuilder authBuilder = http.getSharedObject(AuthenticationManagerBuilder.class);
+          authBuilder
             .userDetailsService(customUserDetailsService)
-            .passwordEncoder(passwordEncoder())
-            .and()
-            .build();
+            .passwordEncoder(passwordEncoder());
+          return authBuilder.build();
     }
 
     @Bean

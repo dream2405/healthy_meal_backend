@@ -1,7 +1,10 @@
 package kr.ac.dankook.ace.healthy_meal_backend.service;
 
+import kr.ac.dankook.ace.healthy_meal_backend.controller.UserController;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.MealInfoRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -28,6 +31,8 @@ public class MealInfoFoodAnalyzeService {
     private final MealInfoRepository mealInfoRepository;
     private final RestClient restClient;
     private final StorageService storageService;
+
+    private static final Logger logger = LoggerFactory.getLogger(MealInfoFoodAnalyzeService.class);
 
     @Autowired
     public MealInfoFoodAnalyzeService(
@@ -61,8 +66,19 @@ public class MealInfoFoodAnalyzeService {
         // 프롬프트 생성
         String prompt = String.format(
                 """
+                        이미지 속에 포함된 모든 음식목록을 찾아주세요.
+
+                        규칙:
+                        1. 이미지에 보이는 각 음식당 가장 적합한 표준 식품명을 찾아주세요
+                        2. 음식이 여러 개가 있다면 쉼표(,)로 구분해서 나열해주세요
+                        3. 만약 식별되는 음식이 없다면 '식별되지않음'이라고 답해주세요
+                        4. 답변 예시: '김치찌개, 밥, 계란후라이' 또는 '피자' 또는 '식별되지않음'
+                        5. 추가 설명 없이 식품 이름만 답변해주세요"""
+        );
+        /*String prompt = String.format(
+                """
                         이미지를 보고 다음 카테고리 목록 중에서 이미지에 있는 모든 카테고리를 찾아주세요.
-                        
+
                         음식 목록: %s
                         
                         규칙:
@@ -74,7 +90,7 @@ public class MealInfoFoodAnalyzeService {
                         6. 답변 예시: '김치찌개, 밥, 계란후라이' 또는 '피자' 또는 '해당없음'
                         7. 추가 설명 없이 카테고리 이름만 작성해주세요""",
                 categoriesString
-        );
+        );*/
 
         // 요청 body 구성
         Map<String, Object> requestBody = Map.of(
@@ -111,12 +127,13 @@ public class MealInfoFoodAnalyzeService {
 
             // 응답에서 텍스트 추출
             String result = extractContentFromResponse(response);
+            logger.info("식품목록 GPT 분석 응답결과 : {}", result);
 
             // 결과를 리스트로 변환하고 검증
             return parseAndValidateResult(result, categories);
 
         } catch (Exception e) {
-            throw new RuntimeException("이미지 분석 중 오류가 발생했습니다: " + e.getMessage(), e);
+            throw new RuntimeException("OpenAI api request 중 오류가 발생했습니다: " + e.getMessage(), e);
         }
     }
 
@@ -158,7 +175,7 @@ public class MealInfoFoodAnalyzeService {
         // 각 음식이 실제 목록에 있는지 검증
         List<String> validFoods = new ArrayList<>();
 
-        for (String detectedFood : detectedFoods) {
+        /*for (String detectedFood : detectedFoods) {
             if (categories.contains(detectedFood)) {
                 validFoods.add(detectedFood);
             } else {
@@ -168,7 +185,8 @@ public class MealInfoFoodAnalyzeService {
                     validFoods.add(closestMatch);
                 }
             }
-        }
+        }*/
+        validFoods.addAll(detectedFoods);
 
         // 중복 제거
         validFoods = validFoods.stream().distinct().collect(Collectors.toList());

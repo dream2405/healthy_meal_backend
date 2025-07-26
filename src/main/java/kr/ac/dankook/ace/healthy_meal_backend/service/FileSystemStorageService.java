@@ -52,7 +52,11 @@ public class FileSystemStorageService implements StorageService {
      * 저장소 루트 위치를 초기화합니다.
      */
     public FileSystemStorageService(@Value("${storage.location:uploads}") String location) {
-        this.rootLocation = Paths.get(location).toAbsolutePath().normalize();
+        if (Paths.get(location).isAbsolute()) {
+            this.rootLocation = Paths.get(location).normalize();
+        } else {
+            this.rootLocation = Paths.get(System.getProperty("user.dir")).resolve(location).normalize();
+        }
         logger.info("File system storage root location set to: {}", this.rootLocation);
     }
 
