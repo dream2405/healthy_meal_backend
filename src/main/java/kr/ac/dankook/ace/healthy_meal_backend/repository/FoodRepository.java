@@ -34,4 +34,8 @@ public interface FoodRepository extends CrudRepository<Food, Long> {
     @Query(value = "SELECT DISTINCT name FROM food WHERE representative_food = :representativeFood",
             nativeQuery = true)
     List<String> findDistinctNameByRepresentativeFood(@Param("representativeFood") String representativeFood);
+
+    // 1차 gpt response에 따른 대표식품명 SELECT
+    @Query("SELECT DISTINCT f.representativeFood FROM Food f WHERE f.representativeFood LIKE %:gptResponse%")
+    List<String> findDistinctByRepresentativeFoodContaining(@Param("gptResponse") String gptResponse);
 }

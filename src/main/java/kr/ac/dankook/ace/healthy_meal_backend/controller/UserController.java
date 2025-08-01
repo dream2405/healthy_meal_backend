@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.transaction.Transactional;
+import kr.ac.dankook.ace.healthy_meal_backend.action.MealAction;
 import kr.ac.dankook.ace.healthy_meal_backend.dto.DailyIntakeDTO;
 import kr.ac.dankook.ace.healthy_meal_backend.dto.MealInfoPostDTO;
 import kr.ac.dankook.ace.healthy_meal_backend.dto.UserGetDTO;
@@ -15,8 +16,8 @@ import kr.ac.dankook.ace.healthy_meal_backend.repository.DailyIntakeRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.FoodRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.MealInfoRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.UserRepository;
+import kr.ac.dankook.ace.healthy_meal_backend.security.CustomUserDetails;
 import kr.ac.dankook.ace.healthy_meal_backend.service.DietaryScoreService;
-import kr.ac.dankook.ace.healthy_meal_backend.service.FileSystemStorageService;
 import kr.ac.dankook.ace.healthy_meal_backend.service.MealInfoFoodAnalyzeService;
 import kr.ac.dankook.ace.healthy_meal_backend.service.StorageService;
 import org.modelmapper.ModelMapper;
@@ -26,6 +27,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -45,6 +47,7 @@ public class UserController {
     private final MealInfoFoodAnalyzeService mealInfoFoodAnalyzeService;
     private final FoodController foodController;
     private final DietaryScoreService dietaryScoreService;
+    private final MealAction mealAction;
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
@@ -57,7 +60,8 @@ public class UserController {
             ModelMapper modelMapper,
             MealInfoFoodAnalyzeService mealInfoFoodAnalyzeService,
             FoodController foodController,
-            DietaryScoreService dietaryScoreService
+            DietaryScoreService dietaryScoreService,
+            MealAction mealAction
     ) {
         this.userRepository = userRepository;
         this.mealInfoRepository = mealInfoRepository;
@@ -68,6 +72,7 @@ public class UserController {
         this.mealInfoFoodAnalyzeService = mealInfoFoodAnalyzeService;
         this.foodController = foodController;
         this.dietaryScoreService = dietaryScoreService;
+        this.mealAction = mealAction;
     }
 
     @GetMapping("/{userId}")
@@ -112,28 +117,22 @@ public class UserController {
     @Operation(summary = "주어진 정보로 주어진 ID의 유저가 식단정보 기록", security = @SecurityRequirement(name = "BearerAuth"))
     public ResponseEntity<MealInfoPostDTO> createMealInfo(
             @PathVariable String userId,
-            @RequestPart("img") MultipartFile file
+            @RequestPart("img") MultipartFile file,
+            @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         // @PathVariable 유효성 검증
-        Optional<User> user = userRepository.findById(userId);
-        if (user.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        if (!userId.equals(userDetails.getUsername())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-
         logger.info("식단사진저장 <시작>");
-        String fileName = storageService.store(file);
-
-        MealInfo mealInfo = new MealInfo();
-        mealInfo.setImgPath(fileName);
-        mealInfo.setUser(user.get());
-
-        mealInfoRepository.save(mealInfo);
-        mealInfo = mealInfoRepository.findById(mealInfo.getId()).get();
-        user.get().addMealInfo(mealInfo);
-
-        MealInfoPostDTO mealInfoPostDTO = modelMapper.map(mealInfo, MealInfoPostDTO.class);
-        logger.info("식단사진저장 <완료>");
-        return ResponseEntity.status(HttpStatus.CREATED).body(mealInfoPostDTO);
+        try {
+            MealInfo mealInfo = mealAction.createMealInfo(file, userDetails.getUser());
+            MealInfoPostDTO mealInfoPostDTO = modelMapper.map(mealInfo, MealInfoPostDTO.class);
+            logger.info("식단사진저장 <완료>");
+            return ResponseEntity.status(HttpStatus.CREATED).body(mealInfoPostDTO);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     @PostMapping("/{userId}/meal-info/{mealInfoId}/analyze")
@@ -142,14 +141,17 @@ public class UserController {
             description = "식단 정보와 음식을 연결", security = @SecurityRequirement(name = "BearerAuth"))
     @Transactional
     public ResponseEntity<List<String>> analyzeMealInfo(@PathVariable String userId, @PathVariable Long mealInfoId) {
-        Optional<User> user = userRepository.findById(userId);
-        Optional<MealInfo> mealInfo = mealInfoRepository.findById(mealInfoId);
-        if (user.isEmpty() || mealInfo.isEmpty()) {
+
+        List<String> repFoods = new ArrayList<>();
+        List<String> foodResult;
+        try {
+            foodResult = mealAction.analyzeMealInfo(mealInfoId);
+            return ResponseEntity.status(HttpStatus.CREATED).body(foodResult);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
-
-        String fileName = mealInfo.get().getImgPath();
-        List<String> foodNames = new ArrayList<>();
         /*
         // 1차 GPT 이미지분석 : 대분류 카테고리
         logger.info("대분류 카테고리 GPT 분석 <시작>");
@@ -174,22 +176,36 @@ public class UserController {
             }
             outercount += 1;
         }*/
-        List<String> foods;
-        logger.info("식품목록 GPT 분석 <시작>");
-        foods = mealInfoFoodAnalyzeService.analyzeImage(fileName, new ArrayList<>());
-        logger.info("식품목록 GPT 분석 <완료> \n && 출력결과 : {}", foods);
-        foodNames.addAll(foods);
-
-        // Food Table을 조회해 해당되는 음식 엔티티 추출
-        for (String foodName : foodNames) {
-            List<Food> foodResult = foodRepository.findAllByName(foodName);
-            logger.info("Food Table 조회결과 -> 입력 : {}, 출력 : {}", foodName, foodResult);
-            if (!foodResult.isEmpty())
-                foodController.createFoodMealInfoRelation(foodResult.get(0).getId(), mealInfoId);
+        /*
+        // 1차 GPT 이미지분석 : 표준 음식목록 추출
+        logger.info("식품목록 GPT 1차분석 <시작>");
+        gptResponses = mealInfoFoodAnalyzeService.firstAnalyzeImage(fileName);
+        for (String gptResponse : gptResponses) {
+            String[] parsedWords = gptResponse.split("\\s+");
+            long start = System.currentTimeMillis();
+            for (String word : parsedWords) {
+                repFoods.addAll(foodRepository.findDistinctByRepresentativeFoodContaining(word));
+            }
+            long end = System.currentTimeMillis();
+            long duration = end - start;
+            logger.info("식품목록 LIKE QUERY 1차분석 소요시간 : {}m{}s / 응답결과 : {}", (duration/1000/60), ((duration/1000)%60), repFoods);
         }
+        logger.info("식품목록 GPT 1차분석 <완료>");
+
+        logger.info("식품목록 GPT 2차분석 <시작>");
+        List<String> foodNames = new ArrayList<>(mealInfoFoodAnalyzeService.secondAnalyzeImage(fileName, repFoods));
+
+        // Food Table을 조회해 해당되는 음식 엔티티 추출 -> 문제발생
+        long start = System.currentTimeMillis();
+        for (String foodName : foodNames) {
+            foodResult.addAll(foodRepository.findAllByName(foodName));
+        }
+        long end = System.currentTimeMillis();
+        long duration = end - start;
+        logger.info("식품목록 LIKE QUERY 2차분석 소요시간 : {}m{}s / 응답결과 : {}", (duration/1000/60), ((duration/1000)%60), foodResult);
         if (foodNames.isEmpty())
             foodNames.add("판단 실패!");
-        return ResponseEntity.status(HttpStatus.CREATED).body(foodNames);
+        logger.info("식품목록 GPT 2차분석 <완료>"); */
     }
 
     @GetMapping("/{userId}/meal-info/{mealInfoId}")
