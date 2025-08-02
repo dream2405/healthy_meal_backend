@@ -2,6 +2,7 @@ package kr.ac.dankook.ace.healthy_meal_backend.service;
 
 import kr.ac.dankook.ace.healthy_meal_backend.entity.MealInfo;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
+import kr.ac.dankook.ace.healthy_meal_backend.repository.FoodRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.MealInfoRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.UserRepository;
 import org.slf4j.Logger;
@@ -26,6 +27,7 @@ public class MealInfoFoodAnalyzeService {
     private static final String OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
     private static final String MODEL = "o4-mini";
     private final UserRepository userRepository;
+    private final FoodRepository foodRepository;
     private final MealInfoRepository mealInfoRepository;
     private final RestClient restClient;
     private final StorageService storageService;
@@ -36,7 +38,8 @@ public class MealInfoFoodAnalyzeService {
     public MealInfoFoodAnalyzeService(
             UserRepository userRepository,
             MealInfoRepository mealInfoRepository,
-            StorageService storageService
+            StorageService storageService,
+            FoodRepository foodRepository
     ) {
         this.userRepository = userRepository;
         this.mealInfoRepository = mealInfoRepository;
@@ -46,6 +49,7 @@ public class MealInfoFoodAnalyzeService {
                 .requestFactory(createSimpleRequestFactory())
                 .build();
         this.storageService = storageService;
+        this.foodRepository = foodRepository;
     }
 
     public MealInfo createMealInfo(String imgPath, User user) {
@@ -121,152 +125,30 @@ public class MealInfoFoodAnalyzeService {
 
     }
 
-    //public List<String>
+    public MealInfo completeMealInfo(MealInfo mealInfo, Float amount, String diary) {
+        mealInfo.setIntakeAmount(amount);
+        mealInfo.setDiary(diary);
+        return mealInfoRepository.save(mealInfo);
+    }
 
-    public MealInfo validateMealInfoId(Long mealInfoId) {
+    public MealInfo validateMealInfoId(Long mealInfoId, String userId) {
         Optional<MealInfo> mealInfo = mealInfoRepository.findById(mealInfoId);
         if (mealInfo.isEmpty()) {
             throw new NoSuchElementException("분석을 위해 기록된 식단 없음");
+        } else if (!mealInfo.get().getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("해당 사용자가 기록한 식단이 아님");
         } else {
             return mealInfo.get();
         }
     }
 
-    public List<String> firstAnalyzeImage(String fileName) {
-        long start = System.currentTimeMillis();
-
-        String base64Img = storageService.convertImageToBase64(fileName);
-
-        // 프롬프트 생성
-        String prompt = String.format(
-                """
-                        이미지 속에 포함된 모든 음식목록을 찾아주세요.
-
-                        규칙:
-                        1. 이미지에 보이는 각 음식당 가장 적합한 표준 식품명을 찾아주세요
-                        2. 음식이 여러 개가 있다면 쉼표(,)로 구분해서 나열해주세요
-                        3. 만약 식별되는 음식이 없다면 '식별되지않음'이라고 답해주세요
-                        4. 답변 예시: '김치찌개, 밥, 계란후라이' 또는 '피자' 또는 '식별되지않음'
-                        5. 추가 설명 없이 식품 이름만 답변해주세요"""
-        );
-
-        // 요청 body 구성
-        Map<String, Object> requestBody = Map.of(
-                "model", MODEL,
-                "messages", List.of(
-                        Map.of(
-                                "role", "user",
-                                "content", List.of(
-                                        Map.of(
-                                                "type", "text",
-                                                "text", prompt
-                                        ),
-                                        Map.of(
-                                                "type", "image_url",
-                                                "image_url", Map.of(
-                                                        "url", "data:image/jpeg;base64," + base64Img,
-                                                        "detail", "low"
-                                                )
-                                        )
-                                )
-                        )
-                ),
-                "max_completion_tokens", 1000  // 여러 음식 이름을 위해 토큰 증가
-        );
-
-        try {
-            // OpenAI API 호출
-            Map<String, Object> response = restClient.post()
-                    .uri("")
-                    .header("Authorization", "Bearer " + openAiApiKey)
-                    .body(requestBody)
-                    .retrieve()
-                    .body(new ParameterizedTypeReference<Map<String, Object>>() {});
-
-            // 응답에서 텍스트 추출
-            String result = extractContentFromResponse(response);
-
-            long end = System.currentTimeMillis();
-            long duration = end - start;
-            logger.info("식품목록 GPT 1차분석 소요시간 : {}m{}s / 응답결과 : {}", (duration/1000/60), ((duration/1000)%60), result);
-
-            // 결과를 리스트로 변환하고 검증
-            return parseAndValidateResult(result, new ArrayList<>());
-
-        } catch (Exception e) {
-            throw new RuntimeException("OpenAI api request 중 오류가 발생했습니다: " + e.getMessage(), e);
-        }
-    }
-
-    public List<String> secondAnalyzeImage(String fileName, List<String> categories) {
-        long start = System.currentTimeMillis();
-
-        // 리스트를 문자열로 변환
-        String categoriesString = String.join(", ", categories);
-
-        String base64Img = storageService.convertImageToBase64(fileName);
-
-        // 프롬프트 생성
-        String prompt = String.format(
-                """
-                        이미지를 보고 다음 음식목록 중에서 이미지에 있는 모든 음식들을 찾아주세요.
-
-                        음식목록: %s
-
-                        규칙:
-                        1. 반드시 제공된 음식목록 에서만 선택해주세요
-                        2. 음식이 여러 개가 있다면 쉼표(,)로 구분해서 나열해주세요
-                        3. 각 음식 이름은 목록에 있는 정확한 음식이름을 사용해주세요
-                        4. 만약 목록에 해당하는 음식이 없다면 '식별되지않음'이라고 답해주세요
-                        5. 답변 예시: '김치찌개, 밥, 계란후라이' 또는 '피자' 또는 '식별되지않음'
-                        6. 추가 설명 없이 음식 이름만 작성해주세요""",
-                categoriesString
-        );
-
-        // 요청 body 구성
-        Map<String, Object> requestBody = Map.of(
-                "model", MODEL,
-                "messages", List.of(
-                        Map.of(
-                                "role", "user",
-                                "content", List.of(
-                                        Map.of(
-                                                "type", "text",
-                                                "text", prompt
-                                        ),
-                                        Map.of(
-                                                "type", "image_url",
-                                                "image_url", Map.of(
-                                                        "url", "data:image/jpeg;base64," + base64Img,
-                                                        "detail", "low"
-                                                )
-                                        )
-                                )
-                        )
-                ),
-                "max_completion_tokens", 1000  // 여러 음식 이름을 위해 토큰 증가
-        );
-
-        try {
-            // OpenAI API 호출
-            Map<String, Object> response = restClient.post()
-                    .uri("")
-                    .header("Authorization", "Bearer " + openAiApiKey)
-                    .body(requestBody)
-                    .retrieve()
-                    .body(new ParameterizedTypeReference<Map<String, Object>>() {});
-
-            // 응답에서 텍스트 추출
-            String result = extractContentFromResponse(response);
-
-            long end = System.currentTimeMillis();
-            long duration = end - start;
-            logger.info("식품목록 GPT 2차분석 소요시간 : {}m{}s / 응답결과 : {}", (duration/1000/60), ((duration/1000)%60), result);
-            // 결과를 리스트로 변환하고 검증
-            return parseAndValidateResult(result, categories);
-
-        } catch (Exception e) {
-            throw new RuntimeException("OpenAI api request 중 오류가 발생했습니다: " + e.getMessage(), e);
+    public void createFoodMealInfoRelation(Long foodId, Long mealInfoId) {
+        var food = foodRepository.findById(foodId);
+        var mealInfo = mealInfoRepository.findById(mealInfoId);
+        if (food.isEmpty() || mealInfo.isEmpty()) {
+            throw new NoSuchElementException("분석된 식품과 기록된 식단 없음");
+        } else {
+            food.get().addMealInfo(mealInfo.get());
         }
     }
 

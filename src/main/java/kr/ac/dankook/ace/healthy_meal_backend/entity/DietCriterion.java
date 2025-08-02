@@ -1,6 +1,7 @@
 package kr.ac.dankook.ace.healthy_meal_backend.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -46,5 +47,4 @@ public class DietCriterion {
 
     @Column(name = "cholesterol_mg")
     private Float cholesterolMg;
-
 }

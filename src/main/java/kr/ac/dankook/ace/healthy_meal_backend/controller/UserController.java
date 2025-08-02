@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.transaction.Transactional;
-import kr.ac.dankook.ace.healthy_meal_backend.action.MealAction;
+import kr.ac.dankook.ace.healthy_meal_backend.action.MealInfoAction;
 import kr.ac.dankook.ace.healthy_meal_backend.dto.DailyIntakeDTO;
 import kr.ac.dankook.ace.healthy_meal_backend.dto.MealInfoPostDTO;
 import kr.ac.dankook.ace.healthy_meal_backend.dto.UserGetDTO;
@@ -47,7 +47,7 @@ public class UserController {
     private final MealInfoFoodAnalyzeService mealInfoFoodAnalyzeService;
     private final FoodController foodController;
     private final DietaryScoreService dietaryScoreService;
-    private final MealAction mealAction;
+    private final MealInfoAction mealInfoAction;
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
@@ -61,7 +61,7 @@ public class UserController {
             MealInfoFoodAnalyzeService mealInfoFoodAnalyzeService,
             FoodController foodController,
             DietaryScoreService dietaryScoreService,
-            MealAction mealAction
+            MealInfoAction mealInfoAction
     ) {
         this.userRepository = userRepository;
         this.mealInfoRepository = mealInfoRepository;
@@ -72,7 +72,7 @@ public class UserController {
         this.mealInfoFoodAnalyzeService = mealInfoFoodAnalyzeService;
         this.foodController = foodController;
         this.dietaryScoreService = dietaryScoreService;
-        this.mealAction = mealAction;
+        this.mealInfoAction = mealInfoAction;
     }
 
     @GetMapping("/{userId}")
@@ -120,13 +120,13 @@ public class UserController {
             @RequestPart("img") MultipartFile file,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        // @PathVariable 유효성 검증
+        // @PathVariable_userId 유효성 검증
         if (!userId.equals(userDetails.getUsername())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         logger.info("식단사진저장 <시작>");
         try {
-            MealInfo mealInfo = mealAction.createMealInfo(file, userDetails.getUser());
+            MealInfo mealInfo = mealInfoAction.createMealInfo(file, userDetails.getUser());
             MealInfoPostDTO mealInfoPostDTO = modelMapper.map(mealInfo, MealInfoPostDTO.class);
             logger.info("식단사진저장 <완료>");
             return ResponseEntity.status(HttpStatus.CREATED).body(mealInfoPostDTO);
@@ -140,17 +140,23 @@ public class UserController {
             summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보를 gpt가 분석",
             description = "식단 정보와 음식을 연결", security = @SecurityRequirement(name = "BearerAuth"))
     @Transactional
-    public ResponseEntity<List<String>> analyzeMealInfo(@PathVariable String userId, @PathVariable Long mealInfoId) {
-
-        List<String> repFoods = new ArrayList<>();
+    public ResponseEntity<List<String>> analyzeMealInfo(@PathVariable String userId,
+                                                        @PathVariable Long mealInfoId,
+                                                        @AuthenticationPrincipal CustomUserDetails userDetails) {
+        // @PathVariable_userId 유효성 검증
+        if (!userId.equals(userDetails.getUsername())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         List<String> foodResult;
         try {
-            foodResult = mealAction.analyzeMealInfo(mealInfoId);
+            foodResult = mealInfoAction.analyzeMealInfo(mealInfoId, userId);
             return ResponseEntity.status(HttpStatus.CREATED).body(foodResult);
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
         /*
         // 1차 GPT 이미지분석 : 대분류 카테고리
@@ -208,66 +214,43 @@ public class UserController {
         logger.info("식품목록 GPT 2차분석 <완료>"); */
     }
 
-    @GetMapping("/{userId}/meal-info/{mealInfoId}")
-    @Operation(summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보 가져오기", security = @SecurityRequirement(name = "BearerAuth"))
-    public ResponseEntity<MealInfoPostDTO> getMealInfo(@PathVariable String userId, @PathVariable Long mealInfoId) {
-        Optional<User> user = userRepository.findById(userId);
-        if (user.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
-        Optional<MealInfo> mealInfo = user.get().getMealInfos().stream()
-                .filter(mf -> Objects.equals(mf.getId(), mealInfoId)).findFirst();
-        return mealInfo
-                .map(info -> ResponseEntity.status(HttpStatus.OK).body(modelMapper.map(info, MealInfoPostDTO.class)))
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
-    }
-
     @PatchMapping("/{userId}/meal-info/{mealInfoId}")
     @Operation(summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보 수정", security = @SecurityRequirement(name = "BearerAuth"))
     @Transactional
     public ResponseEntity<MealInfoPostDTO> updateMealInfo(
             @PathVariable String userId, @PathVariable Long mealInfoId,
-            @RequestParam(required = false) Float amount, @RequestParam(required = false) String diary) {
-        // 사용자 존재 확인
-        Optional<User> user = userRepository.findById(userId);
-        if (user.isEmpty()) {
+            @RequestParam(required = false) Float amount, @RequestParam(required = false) String diary,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        // @PathVariable_userId 유효성 검증
+        if (!userId.equals(userDetails.getUsername())) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
-
-        // 식단 정보 존재 확인
-        Optional<MealInfo> mealInfoOpt = mealInfoRepository.findById(mealInfoId);
-        if (mealInfoOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
-
-        MealInfo mealInfo = mealInfoOpt.get();
-
-        // 해당 사용자의 식단 정보인지 확인
-        if (!mealInfo.getUser().getId().equals(userId)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-
-        // 수정할 데이터가 있는지 확인
+        // @RequestParam_amount_diary 유효성 검증
         if (amount == null && diary == null) {
             return ResponseEntity.badRequest().build();
         }
-
-        // 데이터 업데이트
-        if (amount != null) {
-            mealInfo.setIntakeAmount(amount);
+        try {
+            MealInfo updatedMealInfo = mealInfoAction.completeMealInfo(userDetails.getUser(), mealInfoId, amount, diary);
+            MealInfoPostDTO mealInfoPostDTO = modelMapper.map(updatedMealInfo, MealInfoPostDTO.class);
+            return ResponseEntity.ok(mealInfoPostDTO);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
-        if (diary != null) {
-            mealInfo.setDiary(diary);
+    }
+
+    @GetMapping("/{userId}/meal-info/{mealInfoId}")
+    @Operation(summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보 가져오기", security = @SecurityRequirement(name = "BearerAuth"))
+    public ResponseEntity<MealInfoPostDTO> getMealInfo(@PathVariable String userId, @PathVariable Long mealInfoId, @AuthenticationPrincipal CustomUserDetails userDetails) {
+        // @PathVariable_userId 유효성 검증
+        if (!userId.equals(userDetails.getUsername())) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
-
-        // 저장
-        MealInfo updatedMealInfo = mealInfoRepository.save(mealInfo);
-        MealInfoPostDTO mealInfoPostDTO = modelMapper.map(updatedMealInfo, MealInfoPostDTO.class);
-
-        // 일별 섭취 기록 업데이트
-        updateDailyIntake(mealInfo.getUser().getId(), mealInfo.getCreatedAt().toLocalDate());
-
-        return ResponseEntity.ok(mealInfoPostDTO);
+        User user = userDetails.getUser();
+        Optional<MealInfo> mealInfo = user.getMealInfos().stream()
+                .filter(mf -> Objects.equals(mf.getId(), mealInfoId)).findFirst();
+        return mealInfo
+                .map(info -> ResponseEntity.status(HttpStatus.OK).body(modelMapper.map(info, MealInfoPostDTO.class)))
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
     @DeleteMapping("/{userId}/meal-info/{mealInfoId}")

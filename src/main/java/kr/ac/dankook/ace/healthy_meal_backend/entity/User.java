@@ -1,6 +1,7 @@
 package kr.ac.dankook.ace.healthy_meal_backend.entity;
 
 import jakarta.persistence.*;
+import kr.ac.dankook.ace.healthy_meal_backend.dto.DietCriterionWeightDTO;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -26,6 +27,9 @@ public class User {
 
     @Column(name = "gender")
     private Character gender;
+
+    @Column(name = "critweight")
+    private String critweight;
 
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     private List<NutriWeight> nutriWeights = new ArrayList<>(); // 유저가 설정한 가중치들
@@ -109,5 +113,9 @@ public class User {
             foods.add(link.getFood());
         }
         return foods;
+    }
+
+    public void updateCritweight(String critwegith) {
+        this.critweight = critwegith;
     }
 }
