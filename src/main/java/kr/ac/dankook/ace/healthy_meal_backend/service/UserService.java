@@ -64,14 +64,15 @@ public class UserService {
         DietCriterion dietCriterion = dietCriterionRepository.findApplicableCriterion(age, gender).orElseThrow(() -> new NoSuchElementException(("해당하는 영양섭취 기준이 없음")));
         List<String> weights = Arrays.asList((user.getCritweight()).split("\\s+"));
         List<Float> floatWeights = weights.stream().map(Float::parseFloat).toList();
-        dietCriterion.setEnergyKcal(dietCriterion.getEnergyKcal()*floatWeights.get(0).intValue());
-        dietCriterion.setCarbohydrateG(dietCriterion.getCarbohydrateG()*floatWeights.get(1).intValue());
-        dietCriterion.setFatG(dietCriterion.getFatG()*floatWeights.get(2).intValue());
-        dietCriterion.setProteinG(dietCriterion.getProteinG()*floatWeights.get(3).intValue());
-        dietCriterion.setCelluloseG(dietCriterion.getCelluloseG()*floatWeights.get(4).intValue());
-        dietCriterion.setSugarsG(dietCriterion.getSugarsG()*floatWeights.get(5).intValue());
-        dietCriterion.setSodiumMg(dietCriterion.getSodiumMg()*floatWeights.get(6).intValue());
-        dietCriterion.setCholesterolMg(dietCriterion.getCholesterolMg()*floatWeights.get(7).intValue());
+        //System.out.println("칼로리계산량 : " + dietCriterion.getEnergyKcal() + " / 가중치계산량 : " + (floatWeights.get(0).intValue()/100));
+        dietCriterion.setEnergyKcal(dietCriterion.getEnergyKcal()*(floatWeights.get(0).intValue()/100f));
+        dietCriterion.setCarbohydrateG(dietCriterion.getCarbohydrateG()*(floatWeights.get(1).intValue()/100f));
+        dietCriterion.setFatG(dietCriterion.getFatG()*(floatWeights.get(2).intValue()/100f));
+        dietCriterion.setProteinG(dietCriterion.getProteinG()*(floatWeights.get(3).intValue()/100f));
+        dietCriterion.setCelluloseG(dietCriterion.getCelluloseG()*(floatWeights.get(4).intValue()/100f));
+        dietCriterion.setSugarsG(dietCriterion.getSugarsG()*(floatWeights.get(5).intValue()/100f));
+        dietCriterion.setSodiumMg(dietCriterion.getSodiumMg()*(floatWeights.get(6).intValue()/100f));
+        dietCriterion.setCholesterolMg(dietCriterion.getCholesterolMg()*(floatWeights.get(7).intValue()/100f));
         return dietCriterion;
     }
 }

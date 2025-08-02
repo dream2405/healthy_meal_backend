@@ -220,7 +220,7 @@ public class UserController {
     public ResponseEntity<MealInfoPostDTO> updateMealInfo(
             @PathVariable String userId, @PathVariable Long mealInfoId,
             @RequestParam(required = false) Float amount, @RequestParam(required = false) String diary,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
+            @AuthenticationPrincipal CustomUserDetails userDetails, @RequestBody List<String> confirmedFoods) {
         // @PathVariable_userId 유효성 검증
         if (!userId.equals(userDetails.getUsername())) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
@@ -230,7 +230,7 @@ public class UserController {
             return ResponseEntity.badRequest().build();
         }
         try {
-            MealInfo updatedMealInfo = mealInfoAction.completeMealInfo(userDetails.getUser(), mealInfoId, amount, diary);
+            MealInfo updatedMealInfo = mealInfoAction.completeMealInfo(userDetails.getUser(), mealInfoId, amount, diary, confirmedFoods);
             MealInfoPostDTO mealInfoPostDTO = modelMapper.map(updatedMealInfo, MealInfoPostDTO.class);
             return ResponseEntity.ok(mealInfoPostDTO);
         } catch (Exception e) {

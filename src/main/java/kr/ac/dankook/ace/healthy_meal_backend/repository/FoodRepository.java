@@ -7,10 +7,13 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface FoodRepository extends CrudRepository<Food, Long> {
     List<Food> findAllByName(String name);
+
+    Optional<Food> findByName(String name);
 
     @Query("SELECT f FROM Food f WHERE " +
             "(:name IS NULL OR f.name=:name) AND " +
@@ -38,4 +41,7 @@ public interface FoodRepository extends CrudRepository<Food, Long> {
     // 1차 gpt response에 따른 대표식품명 SELECT
     @Query("SELECT DISTINCT f.representativeFood FROM Food f WHERE f.representativeFood LIKE %:gptResponse%")
     List<String> findDistinctByRepresentativeFoodContaining(@Param("gptResponse") String gptResponse);
+
+    @Query("SELECT DISTINCT f.representativeFood FROM Food f")
+    List<String> findDistinctRepresentativeNames();
 }

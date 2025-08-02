@@ -39,14 +39,17 @@ public class MealInfoAction {
         MealInfo mealInfo = mealInfoFoodAnalyzeService.validateMealInfoId(mealInfoId, userId);
         String base64Image = storageService.convertImageToBase64(mealInfo.getImgPath());
         List<String> gptResponse = mealInfoFoodAnalyzeService.gptAnalyzeImage(base64Image);
-
-        mealInfoFoodAnalyzeService.createFoodMealInfoRelation(null, null);
-        return gptResponse;
+        List<String> analyzedRepresentativeFoods = mealInfoFoodAnalyzeService.representativeFoodRecordMapper(gptResponse);
+        return mealInfoFoodAnalyzeService.foodRecordMapper(analyzedRepresentativeFoods, gptResponse);
+        //mealInfoFoodAnalyzeService.createFoodMealInfoRelation(null, null); -> 분석된 food 개수만큼 불러야함
     }
 
-    public MealInfo completeMealInfo(User user, Long mealInfoId, Float amount, String diary) {
+    public MealInfo completeMealInfo(User user, Long mealInfoId, Float amount, String diary, List<String> confirmedFoods) {
         MealInfo mealInfo = mealInfoFoodAnalyzeService.validateMealInfoId(mealInfoId, user.getId());
         MealInfo updatedMealInfo = mealInfoFoodAnalyzeService.completeMealInfo(mealInfo, amount, diary);
+        for (String food : confirmedFoods) {
+            mealInfoFoodAnalyzeService.createFoodMealInfoRelation(food, mealInfoId);
+        }
         DailyIntake dailyIntake = nutrientIntakeService.updateDailyIntake(updatedMealInfo, user, updatedMealInfo.getCreatedAt().toLocalDate());
         return updatedMealInfo;
     }

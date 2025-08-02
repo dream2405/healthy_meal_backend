@@ -25,7 +25,7 @@ public class DietCriterion {
     private Character gender;
 
     @Column(name = "energy_kcal")
-    private Integer energyKcal;
+    private Float energyKcal;
 
     @Column(name = "protein_g")
     private Float proteinG;

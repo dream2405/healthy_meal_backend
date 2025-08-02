@@ -13,6 +13,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
+import org.apache.commons.text.similarity.LevenshteinDistance;
 
 import org.springframework.web.client.RestClient;
 
@@ -61,7 +62,6 @@ public class MealInfoFoodAnalyzeService {
     }
 
     public List<String> gptAnalyzeImage(String base64Image) {
-        long start = System.currentTimeMillis();
         // 프롬프트 생성
         String prompt = String.format(
                 """
@@ -101,6 +101,7 @@ public class MealInfoFoodAnalyzeService {
         );
 
         try {
+            long start = System.currentTimeMillis();
             // OpenAI API 호출
             Map<String, Object> response = restClient.post()
                     .uri("")
@@ -125,6 +126,96 @@ public class MealInfoFoodAnalyzeService {
 
     }
 
+    public List<String> representativeFoodRecordMapper(List<String> gptResponse) {
+        List<String> representativeFoods = new ArrayList<>();
+        List<String> candidateFoods = foodRepository.findDistinctRepresentativeNames();
+        for (String gpt : gptResponse) {
+            representativeFoods.add(matchByCosine(gpt, candidateFoods));
+        }
+        System.out.println(representativeFoods);
+        return representativeFoods;
+    }
+    private String matchByCosine(String input, List<String> candidates) {
+        double threshold = 0.3;
+        String bestMatch = null;
+        double bestScore = 0.0;
+        for (String candidate : candidates) {
+            double score = getCosineSimilarity(input, candidate);
+            if (score > bestScore) {
+                bestScore = score;
+                bestMatch = candidate;
+                System.out.println("분석중 대표식품명 : "+bestMatch);
+            }
+        }
+        return (bestScore >= threshold) ?  bestMatch : null;
+    }
+    private double getCosineSimilarity(String s1, String s2) {
+        List<String> words1 = Arrays.asList(s1.split("\\s+"));
+        List<String> words2 = Arrays.asList(s2.split("\\s+"));
+
+        Set<String> allWords = new HashSet<>();
+        allWords.addAll(words1);
+        allWords.addAll(words2);
+
+        List<Integer> vec1 = new ArrayList<>();
+        List<Integer> vec2 = new ArrayList<>();
+
+        for (String word : allWords) {
+            vec1.add(Collections.frequency(words1, word));
+            vec2.add(Collections.frequency(words2, word));
+        }
+
+        return cosine(vec1, vec2);
+    }
+    private double cosine(List<Integer> v1, List<Integer> v2) {
+        double dot = 0.0, norm1 = 0.0, norm2 = 0.0;
+        for (int i = 0; i < v1.size(); i++) {
+            dot += v1.get(i) * v2.get(i);
+            norm1 += Math.pow(v1.get(i), 2);
+            norm2 += Math.pow(v2.get(i), 2);
+        }
+        return (norm1 == 0 || norm2 == 0) ? 0.0 : dot / (Math.sqrt(norm1) * Math.sqrt(norm2));
+    }
+
+    public List<String> foodRecordMapper(List<String> analyzedRepresentativeFoods, List<String> gptResponse) {
+        List<String> analyzedFoods = new ArrayList<>();
+        for (int i = 0; i < analyzedRepresentativeFoods.size(); i++) {
+            if (analyzedRepresentativeFoods.get(i) == null) {
+                continue;
+            } else {
+                List<String> candidateFoods = foodRepository.findDistinctNameByRepresentativeFood(analyzedRepresentativeFoods.get(i));
+                String matchedFood = matchByLevenshtein(gptResponse.get(i), candidateFoods);
+                if (matchedFood == null) {
+                    continue;
+                } else {
+                    analyzedFoods.add(matchedFood);
+                }
+            }
+        }
+        System.out.println(analyzedFoods);
+        return analyzedFoods;
+    }
+    private String matchByLevenshtein(String input, List<String> candidates) {
+        double threshold = 0.4;
+        String bestMatch = null;
+        double bestScore = 0.0;
+        for (String candidate : candidates) {
+            double score = getLevenshteinSimilarity(input, candidate);
+            if (score > bestScore) {
+                bestScore = score;
+                bestMatch = candidate;
+            }
+        }
+        return (bestScore >= threshold) ? bestMatch : "식별되지않음";
+    }
+    private double getLevenshteinSimilarity(String s1, String s2) {
+        LevenshteinDistance distance = new LevenshteinDistance();
+        int maxLength = Math.max(s1.length(), s2.length());
+        if (maxLength == 0) { return 1.0; }
+        int editDistance = distance.apply(s1, s2);
+        return 1.0 - ((double) editDistance / maxLength);
+    }
+
     public MealInfo completeMealInfo(MealInfo mealInfo, Float amount, String diary) {
         mealInfo.setIntakeAmount(amount);
         mealInfo.setDiary(diary);
@@ -142,8 +233,8 @@ public class MealInfoFoodAnalyzeService {
         }
     }
 
-    public void createFoodMealInfoRelation(Long foodId, Long mealInfoId) {
-        var food = foodRepository.findById(foodId);
+    public void createFoodMealInfoRelation(String foodName, Long mealInfoId) {
+        var food = foodRepository.findByName(foodName);
         var mealInfo = mealInfoRepository.findById(mealInfoId);
         if (food.isEmpty() || mealInfo.isEmpty()) {
             throw new NoSuchElementException("분석된 식품과 기록된 식단 없음");

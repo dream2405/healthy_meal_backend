@@ -181,12 +181,11 @@ public class DietaryScoreService {
     private Optional<Double> getNutrientValueFromDietCriterion(DietCriterion criterion, NutrientType nutrient) {
         if (criterion == null) return Optional.empty();
         Float value;
-        Integer intValue;
 
         switch (nutrient) {
             case ENERGY:
-                intValue = criterion.getEnergyKcal(); // Integer 타입
-                return Optional.ofNullable(intValue).map(Integer::doubleValue);
+                value = criterion.getEnergyKcal(); // Integer 타입
+                return Optional.ofNullable(value).map(Float::doubleValue);
             case PROTEIN:
                 value = criterion.getProteinG();
                 break;

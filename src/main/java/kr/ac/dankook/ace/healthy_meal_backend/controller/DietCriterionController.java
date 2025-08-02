@@ -22,13 +22,10 @@ import java.util.Optional;
 public class DietCriterionController {
 
     private final UserService userService;
-    private final DietCriterionRepository dietCriterionRepository;
 
     public DietCriterionController(
-            DietCriterionRepository dietCriterionRepository,
             UserService userService
     ) {
-        this.dietCriterionRepository = dietCriterionRepository;
         this.userService = userService;
     }
 
