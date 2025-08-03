@@ -1,5 +1,7 @@
 package kr.ac.dankook.ace.healthy_meal_backend.service;
 
+import jakarta.transaction.Transactional;
+import kr.ac.dankook.ace.healthy_meal_backend.entity.Food;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.MealInfo;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.FoodRepository;
@@ -70,9 +72,15 @@ public class MealInfoFoodAnalyzeService {
                         ⚠️ 규칙:
                         1. 설명 없이 음식 이름만 쉼표로 구분하여 출력해주세요.
                         2. 만약 식별되는 음식이 없다면 '식별되지않음'이라고 답해주세요
+                        3. 음식 이름은 단어별로 띄어쓰기하여 출력해주세요.
+                        4. 단일 음식에 대해서 쉼표구분 없이 최대한 띄어쓰기를 사용해서 출력해주세요. (스파게티, 토마토 크림 소스 -> 토마토 크림 스파게티)
+                        5. 예외항목 음식들은 식별될 수 없으므로 대체되는 음식명으로 출력해주세요.
+                        
+                        예외항목:
+                        파스타(->스파게티), 돈까스(->돈가스)
                         
                         출력예시:
-                        불고기, 밥, 김치
+                        불고기, 밥, 김치, 초콜릿 칩 스콘
                         또는
                         식별되지않음"""
         );
@@ -136,7 +144,7 @@ public class MealInfoFoodAnalyzeService {
         return representativeFoods;
     }
     private String matchByCosine(String input, List<String> candidates) {
-        double threshold = 0.3;
+        double threshold = 0.25;
         String bestMatch = null;
         double bestScore = 0.0;
         for (String candidate : candidates) {
@@ -144,7 +152,6 @@ public class MealInfoFoodAnalyzeService {
             if (score > bestScore) {
                 bestScore = score;
                 bestMatch = candidate;
-                System.out.println("분석중 대표식품명 : "+bestMatch);
             }
         }
         return (bestScore >= threshold) ?  bestMatch : null;
@@ -233,13 +240,26 @@ public class MealInfoFoodAnalyzeService {
         }
     }
 
+    @Transactional
+    public void deleteMealInfo(MealInfo mealInfo, User user) {
+        try {
+            mealInfo.setUser(null);
+            mealInfoRepository.delete(mealInfo);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    @Transactional
     public void createFoodMealInfoRelation(String foodName, Long mealInfoId) {
-        var food = foodRepository.findByName(foodName);
-        var mealInfo = mealInfoRepository.findById(mealInfoId);
-        if (food.isEmpty() || mealInfo.isEmpty()) {
-            throw new NoSuchElementException("분석된 식품과 기록된 식단 없음");
-        } else {
-            food.get().addMealInfo(mealInfo.get());
+        try {
+            Food food = foodRepository.findFirstByName(foodName).orElseThrow(() -> new NoSuchElementException("식품 식별되지않음"));
+            MealInfo mealInfo = mealInfoRepository.findById(mealInfoId).orElseThrow(() -> new NoSuchElementException("식단기록없음"));
+            food.addMealInfo(mealInfo);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
         }
     }
 
@@ -263,7 +283,6 @@ public class MealInfoFoodAnalyzeService {
             return "해당없음";
         }
     }
-
     private List<String> parseAndValidateResult(String gptResponse, List<String> categories) {
         List<String> validFoods = new ArrayList<>();
         String trimmedResponse = gptResponse.trim();
@@ -301,7 +320,6 @@ public class MealInfoFoodAnalyzeService {
 
         return validFoods.isEmpty() ? List.of("해당없음") : validFoods;
     }
-
     private String findClosestMatch(String aiResponse, List<String> categories) {
         String lowerResponse = aiResponse.toLowerCase();
 
@@ -314,7 +332,6 @@ public class MealInfoFoodAnalyzeService {
 
         return "해당없음";
     }
-
     private ClientHttpRequestFactory createSimpleRequestFactory() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(Duration.ofSeconds(30));  // 연결 타임아웃: 30초

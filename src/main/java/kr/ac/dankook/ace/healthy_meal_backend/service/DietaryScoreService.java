@@ -161,14 +161,14 @@ public class DietaryScoreService {
 
     private Map<NutrientType, Double> extractActualIntakesFromDailyIntake(DailyIntake dailyIntake) {
         Map<NutrientType, Double> actualIntakes = new EnumMap<>(NutrientType.class);
-        actualIntakes.put(NutrientType.ENERGY, Optional.ofNullable(dailyIntake.getEnergyKcal()).map(Integer::doubleValue).orElse(0.0));
-        actualIntakes.put(NutrientType.PROTEIN, Optional.ofNullable(dailyIntake.getProteinG()).map(Float::doubleValue).orElse(0.0));
-        actualIntakes.put(NutrientType.FAT, Optional.ofNullable(dailyIntake.getFatG()).map(Float::doubleValue).orElse(0.0));
-        actualIntakes.put(NutrientType.CARBOHYDRATE, Optional.ofNullable(dailyIntake.getCarbohydrateG()).map(Float::doubleValue).orElse(0.0));
-        actualIntakes.put(NutrientType.SUGARS, Optional.ofNullable(dailyIntake.getSugarsG()).map(Float::doubleValue).orElse(0.0));
-        actualIntakes.put(NutrientType.CELLULOSE, Optional.ofNullable(dailyIntake.getCelluloseG()).map(Float::doubleValue).orElse(0.0));
-        actualIntakes.put(NutrientType.SODIUM, Optional.ofNullable(dailyIntake.getSodiumMg()).map(Float::doubleValue).orElse(0.0));
-        actualIntakes.put(NutrientType.CHOLESTEROL, Optional.ofNullable(dailyIntake.getCholesterolMg()).map(Float::doubleValue).orElse(0.0));
+        actualIntakes.put(NutrientType.ENERGY, Optional.ofNullable(dailyIntake.getEnergyKcal()).orElse(0.0));
+        actualIntakes.put(NutrientType.PROTEIN, Optional.ofNullable(dailyIntake.getProteinG()).orElse(0.0));
+        actualIntakes.put(NutrientType.FAT, Optional.ofNullable(dailyIntake.getFatG()).orElse(0.0));
+        actualIntakes.put(NutrientType.CARBOHYDRATE, Optional.ofNullable(dailyIntake.getCarbohydrateG()).orElse(0.0));
+        actualIntakes.put(NutrientType.SUGARS, Optional.ofNullable(dailyIntake.getSugarsG()).orElse(0.0));
+        actualIntakes.put(NutrientType.CELLULOSE, Optional.ofNullable(dailyIntake.getCelluloseG()).orElse(0.0));
+        actualIntakes.put(NutrientType.SODIUM, Optional.ofNullable(dailyIntake.getSodiumMg()).orElse(0.0));
+        actualIntakes.put(NutrientType.CHOLESTEROL, Optional.ofNullable(dailyIntake.getCholesterolMg()).orElse(0.0));
         return actualIntakes;
     }
 

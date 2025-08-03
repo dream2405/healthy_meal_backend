@@ -58,13 +58,21 @@ public class User {
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     private List<MealInfo> mealInfos = new ArrayList<>();
 
+    /*
+        1:N 관계에서의 정합성 처리
+        1의 테이블 입장에서는 N 엔티티 정보를 가지고 있지 않음 but,
+        1의 자바객체 입장에서는 N 엔티티 정보를 조회하는 함수를 만들 수 있음
+        -> 따라서 삽입 / 삭제시 @OneToMany 필드에 대한 작업도 필요함
+        -> 실제로 테이블에는 @OneToMany 속성은 존재하지않음
+     */
     public void addMealInfo(MealInfo mealInfo) {
-        this.mealInfos.add(mealInfo);
-        mealInfo.setUser(this);
+        this.mealInfos.add(mealInfo);       // for 자바내부객체 컬렉션 정합성 (실제론 userentity에 mealinfo정보는 없음)
+        mealInfo.setUser(this);             // 관계성의 주인은 mealinfo -> user entity 참조를 추가함
     }
 
     public void removeMealInfo(MealInfo mealInfo) {
         this.mealInfos.remove(mealInfo);
+        mealInfo.setUser(null);
     }
 
     // Food와의 다대다 관계를 위한 UserFoodLink 매핑

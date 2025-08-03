@@ -158,64 +158,10 @@ public class UserController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
-        /*
-        // 1차 GPT 이미지분석 : 대분류 카테고리
-        logger.info("대분류 카테고리 GPT 분석 <시작>");
-        List<String> majorCategories = foodRepository.findDistinctMajorCategoryNative();
-        List<String> majorCategoriesResult = mealInfoFoodAnalyzeService.analyzeImage(fileName, majorCategories);
-        logger.info("대분류 카테고리 GPT 분석 <완료> && 입력목록 : {} \n&& 출력결과 : {}", majorCategories, majorCategoriesResult);
-        int outercount = 1;
-        for (String majorCategory : majorCategoriesResult) {
-            // 2차 GPT 이미지분석 : 대표식품명 카테고리
-            logger.info("대표식품명 카테고리 GPT 분석 {}회 <시작>", outercount);
-            var representativeFoods = foodRepository.findDistinctRepresentativeFoodByMajorCategory(majorCategory);
-            var representativeFoodsResult = mealInfoFoodAnalyzeService.analyzeImage(fileName, representativeFoods);
-            logger.info("대표식품명 카테고리 GPT 분석 {}회 <완료> && 입력목록 : {} \n&& 출력결과 : {}", outercount, representativeFoods, representativeFoodsResult);
-            int innercount = 1;
-            for (String representativeFood : representativeFoodsResult) {
-                // 3차 GPT 이미지분석 : 최종식품명 카테고리
-                logger.info("최종식품명 카테고리 GPT 분석 {}회 <시작>", innercount);
-                var foods = foodRepository.findDistinctNameByRepresentativeFood(representativeFood);
-                foodNames.addAll(mealInfoFoodAnalyzeService.analyzeImage(fileName, foods));
-                logger.info("최종식품명 카테고리 GPT 분석 {}회 <완료> && 입력목록 : {} \n&& 출력결과 : {}", innercount, foods, foodNames);
-                innercount += 1;
-            }
-            outercount += 1;
-        }*/
-        /*
-        // 1차 GPT 이미지분석 : 표준 음식목록 추출
-        logger.info("식품목록 GPT 1차분석 <시작>");
-        gptResponses = mealInfoFoodAnalyzeService.firstAnalyzeImage(fileName);
-        for (String gptResponse : gptResponses) {
-            String[] parsedWords = gptResponse.split("\\s+");
-            long start = System.currentTimeMillis();
-            for (String word : parsedWords) {
-                repFoods.addAll(foodRepository.findDistinctByRepresentativeFoodContaining(word));
-            }
-            long end = System.currentTimeMillis();
-            long duration = end - start;
-            logger.info("식품목록 LIKE QUERY 1차분석 소요시간 : {}m{}s / 응답결과 : {}", (duration/1000/60), ((duration/1000)%60), repFoods);
-        }
-        logger.info("식품목록 GPT 1차분석 <완료>");
-
-        logger.info("식품목록 GPT 2차분석 <시작>");
-        List<String> foodNames = new ArrayList<>(mealInfoFoodAnalyzeService.secondAnalyzeImage(fileName, repFoods));
-
-        // Food Table을 조회해 해당되는 음식 엔티티 추출 -> 문제발생
-        long start = System.currentTimeMillis();
-        for (String foodName : foodNames) {
-            foodResult.addAll(foodRepository.findAllByName(foodName));
-        }
-        long end = System.currentTimeMillis();
-        long duration = end - start;
-        logger.info("식품목록 LIKE QUERY 2차분석 소요시간 : {}m{}s / 응답결과 : {}", (duration/1000/60), ((duration/1000)%60), foodResult);
-        if (foodNames.isEmpty())
-            foodNames.add("판단 실패!");
-        logger.info("식품목록 GPT 2차분석 <완료>"); */
     }
 
     @PatchMapping("/{userId}/meal-info/{mealInfoId}")
-    @Operation(summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보 수정", security = @SecurityRequirement(name = "BearerAuth"))
+    @Operation(summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보 최종기록 / 수정", security = @SecurityRequirement(name = "BearerAuth"))
     @Transactional
     public ResponseEntity<MealInfoPostDTO> updateMealInfo(
             @PathVariable String userId, @PathVariable Long mealInfoId,
@@ -256,50 +202,18 @@ public class UserController {
     @DeleteMapping("/{userId}/meal-info/{mealInfoId}")
     @Operation(summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보 삭제", security = @SecurityRequirement(name = "BearerAuth"))
     @Transactional
-    public ResponseEntity<Object> deleteMealInfo(@PathVariable String userId, @PathVariable Long mealInfoId) {
-        // 사용자 존재 확인
-        Optional<User> user = userRepository.findById(userId);
-        if (user.isEmpty()) {
+    public ResponseEntity<Object> deleteMealInfo(
+            @PathVariable String userId, @PathVariable Long mealInfoId, @AuthenticationPrincipal CustomUserDetails userDetails) {
+        // @PathVariable_userId 유효성 검증
+        if (!userId.equals(userDetails.getUsername())) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
-
-        // 식단 정보 존재 확인
-        Optional<MealInfo> mealInfoOpt = mealInfoRepository.findById(mealInfoId);
-        if (mealInfoOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
-
-        MealInfo mealInfo = mealInfoOpt.get();
-
-        // 해당 사용자의 식단 정보인지 확인
-        if (!mealInfo.getUser().getId().equals(userId)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-
         try {
-            // 연관된 이미지 파일 삭제 (선택사항)
-            if (mealInfo.getImgPath() != null && !mealInfo.getImgPath().isEmpty()) {
-                storageService.delete(mealInfo.getImgPath());
-            }
-
-            // 사용자의 MealInfo 목록에서 제거
-            user.get().getMealInfos().remove(mealInfo);
-
-            // 데이터베이스에서 삭제
-            mealInfoRepository.delete(mealInfo);
+            mealInfoAction.deleteMealInfo(mealInfoId, userDetails.getUser());
+            return ResponseEntity.ok().build();
         } catch (Exception e) {
-            // 파일 삭제 실패해도 데이터는 삭제
-            mealInfoRepository.delete(mealInfo);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
-
-        // 일별 섭취 기록 업데이트
-        var dailyIntake = dailyIntakeRepository.findByUserIdAndDay(userId, mealInfo.getCreatedAt().toLocalDate());
-        if (!dailyIntake.isEmpty()) {
-            deleteDailyIntake(userId, dailyIntake.get(0).getId());
-        }
-        updateDailyIntake(mealInfo.getUser().getId(), mealInfo.getCreatedAt().toLocalDate());
-
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
     @GetMapping("/{userId}/daily-intake")
@@ -327,10 +241,10 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.OK).body(modelMapper.map(dailyIntake, DailyIntakeDTO.class));
     }
 
-    @PutMapping("/{userId}/daily-intake")
+    /*@PutMapping("/{userId}/daily-intake")
     @Operation(summary = "주어진 ID의 유저가 일별섭취기록 생성/업데이트", security = @SecurityRequirement(name = "BearerAuth"))
     @Transactional
-    public ResponseEntity<DailyIntakeDTO> updateDailyIntake(
+    public ResponseEntity<DailyIntakeDTO> applyInsertDailyIntake(
             @PathVariable String userId,
             @RequestParam(value = "date")
             @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date
@@ -365,55 +279,7 @@ public class UserController {
 
         HttpStatus status = isNewRecord ? HttpStatus.CREATED : HttpStatus.OK;
         return ResponseEntity.status(status).body(dailyIntakeDTO);
-    }
-
-    private DailyIntake createNewDailyIntake(User user, LocalDate date) {
-        DailyIntake dailyIntake = new DailyIntake();
-        dailyIntake.setUser(user);
-        dailyIntake.setDay(date);
-        return dailyIntake;
-    }
-
-    private void resetNutritionValues(DailyIntake dailyIntake) {
-        dailyIntake.setCelluloseG(0f);
-        dailyIntake.setFatG(0f);
-        dailyIntake.setCarbohydrateG(0f);
-        dailyIntake.setProteinG(0f);
-        dailyIntake.setCholesterolMg(0f);
-        dailyIntake.setEnergyKcal(0);
-        dailyIntake.setSugarsG(0f);
-        dailyIntake.setSodiumMg(0f);
-        dailyIntake.setScore(0);
-    }
-
-    private void updateNutritionValues(DailyIntake dailyIntake, List<MealInfo> mealInfos) {
-        // 초기화
-        resetNutritionValues(dailyIntake);
-
-        // 모든 음식의 영양소 합계 계산
-        mealInfos.stream()
-                .flatMap(mealInfo -> mealInfo.getFoods().stream())
-                .forEach(food -> addFoodNutrition(dailyIntake, food));
-    }
-
-    private void addFoodNutrition(DailyIntake dailyIntake, Food food) {
-        dailyIntake.setCelluloseG(dailyIntake.getCelluloseG() +
-                Optional.ofNullable(food.getCelluloseG()).orElse(0.0).floatValue());
-        dailyIntake.setFatG(dailyIntake.getFatG() +
-                Optional.ofNullable(food.getFatG()).orElse(0.0).floatValue());
-        dailyIntake.setCarbohydrateG(dailyIntake.getCarbohydrateG() +
-                Optional.ofNullable(food.getCarbohydrateG()).orElse(0.0).floatValue());
-        dailyIntake.setProteinG(dailyIntake.getProteinG() +
-                Optional.ofNullable(food.getProteinG()).orElse(0.0).floatValue());
-        dailyIntake.setCholesterolMg(dailyIntake.getCholesterolMg() +
-                Optional.ofNullable(food.getCholesterolMg()).orElse(0.0).floatValue());
-        dailyIntake.setEnergyKcal(dailyIntake.getEnergyKcal() +
-                Optional.ofNullable(food.getEnergyKcal()).orElse(0));
-        dailyIntake.setSugarsG(dailyIntake.getSugarsG() +
-                Optional.ofNullable(food.getSugarsG()).orElse(0.0).floatValue());
-        dailyIntake.setSodiumMg(dailyIntake.getSodiumMg() +
-                Optional.ofNullable(food.getSodiumMg()).orElse(0.0).floatValue());
-    }
+    }*/
 
     @PutMapping("/{userId}/daily-intake/score")
     @Operation(summary = "주어진 ID의 유저가 주어진 날짜의 일별섭취기록 점수 업데이트", security = @SecurityRequirement(name = "BearerAuth"))

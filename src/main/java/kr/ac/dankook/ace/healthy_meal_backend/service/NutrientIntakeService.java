@@ -1,5 +1,6 @@
 package kr.ac.dankook.ace.healthy_meal_backend.service;
 
+import jakarta.transaction.Transactional;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.DailyIntake;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.Food;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.MealInfo;
@@ -10,9 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.Optional;
 
 @Service
 public class NutrientIntakeService {
@@ -29,44 +28,69 @@ public class NutrientIntakeService {
         this.mealInfoRepository = mealInfoRepository;
     }
 
-    public DailyIntake updateDailyIntake(MealInfo mealInfo, User user, LocalDate date) {
+    @Transactional
+    public void applyInsertDailyIntake(MealInfo mealInfo, User user, LocalDate date) {
         DailyIntake dailyIntake = dailyIntakeRepository.findByUserIdAndDay(user.getId(), date)
                 .stream()
                 .findFirst()
-                .orElse(createNewDailyIntake(user, date));
-
-        List<MealInfo> mealInfos = mealInfoRepository.findByUserIdAndCreatedDate(user.getId(), date);
-        if (mealInfos.isEmpty()) { throw new NoSuchElementException("기록된 식단정보 없음");}
-
-        mealInfos.stream()
-                .flatMap(varMealInfo -> mealInfo.getFoods().stream())
-                .forEach(food -> addFoodNutrition(dailyIntake, food));
-
-        return dailyIntakeRepository.save(dailyIntake);
+                .orElseGet(() -> dailyIntakeRepository.save(createNewDailyIntake(user, date)));
+        int foodNum = mealInfo.getFoods().size();
+        mealInfo.getFoods().forEach(food -> addFoodNutrition(dailyIntake, food, foodNum));
     }
-
     private DailyIntake createNewDailyIntake(User user, LocalDate date) {
         DailyIntake dailyIntake = new DailyIntake();
         dailyIntake.setUser(user);
         dailyIntake.setDay(date);
         return dailyIntake;
     }
-    private void addFoodNutrition(DailyIntake dailyIntake, Food food) {
-        dailyIntake.setCelluloseG(dailyIntake.getCelluloseG() +
-                Optional.ofNullable(food.getCelluloseG()).orElse(0.0).floatValue());
-        dailyIntake.setFatG(dailyIntake.getFatG() +
-                Optional.ofNullable(food.getFatG()).orElse(0.0).floatValue());
-        dailyIntake.setCarbohydrateG(dailyIntake.getCarbohydrateG() +
-                Optional.ofNullable(food.getCarbohydrateG()).orElse(0.0).floatValue());
-        dailyIntake.setProteinG(dailyIntake.getProteinG() +
-                Optional.ofNullable(food.getProteinG()).orElse(0.0).floatValue());
-        dailyIntake.setCholesterolMg(dailyIntake.getCholesterolMg() +
-                Optional.ofNullable(food.getCholesterolMg()).orElse(0.0).floatValue());
-        dailyIntake.setEnergyKcal(dailyIntake.getEnergyKcal() +
-                Optional.ofNullable(food.getEnergyKcal()).orElse(0));
-        dailyIntake.setSugarsG(dailyIntake.getSugarsG() +
-                Optional.ofNullable(food.getSugarsG()).orElse(0.0).floatValue());
-        dailyIntake.setSodiumMg(dailyIntake.getSodiumMg() +
-                Optional.ofNullable(food.getSodiumMg()).orElse(0.0).floatValue());
+    private void addFoodNutrition(DailyIntake dailyIntake, Food food, int foodNum) {
+        try {
+            float calRatio = Float.parseFloat(food.getWeight().replaceAll("[^\\d.]", "")) / 100;
+            // 이거 생각해보니까 'ml'도 있네.?ㅋㅋㅋㅋㅋㅋㅋ
+            dailyIntake.addMealIntake(
+                    nullToZero(food.getEnergyKcal())*calRatio/foodNum,
+                    nullToZero(food.getProteinG())*calRatio/foodNum,
+                    nullToZero(food.getFatG())*calRatio/foodNum,
+                    nullToZero(food.getCarbohydrateG())*calRatio/foodNum,
+                    nullToZero(food.getSugarsG())*calRatio/foodNum,
+                    nullToZero(food.getCelluloseG())*calRatio/foodNum,
+                    nullToZero(food.getSodiumMg())*calRatio/foodNum,
+                    nullToZero(food.getCholesterolMg())*calRatio/foodNum
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
+    }
+    private Double nullToZero(Double value) {
+        return value != null ? value : 0d;
+    }
+
+    @Transactional
+    public void applyDeleteDailyIntake(MealInfo mealInfo, User user, LocalDate date) {
+        DailyIntake dailyIntake = dailyIntakeRepository.findByUserIdAndDay(user.getId(), date)
+                .stream()
+                .findFirst()
+                .orElseThrow(NoSuchElementException::new);
+        int foodNum = mealInfo.getFoods().size();
+        mealInfo.getFoods().forEach(food -> deleteFoodNutrition(dailyIntake, food, foodNum));
+    }
+    private void deleteFoodNutrition(DailyIntake dailyIntake, Food food,  int foodNum) {
+        try {
+            float calRatio = Float.parseFloat(food.getWeight().replaceAll("[^\\d.]", "")) / 100;
+            dailyIntake.deleteMealIntake(
+                    nullToZero(food.getEnergyKcal())*calRatio/foodNum,
+                    nullToZero(food.getProteinG())*calRatio/foodNum,
+                    nullToZero(food.getFatG())*calRatio/foodNum,
+                    nullToZero(food.getCarbohydrateG())*calRatio/foodNum,
+                    nullToZero(food.getSugarsG())*calRatio/foodNum,
+                    nullToZero(food.getCelluloseG())*calRatio/foodNum,
+                    nullToZero(food.getSodiumMg())*calRatio/foodNum,
+                    nullToZero(food.getCholesterolMg())*calRatio/foodNum
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
     }
 }

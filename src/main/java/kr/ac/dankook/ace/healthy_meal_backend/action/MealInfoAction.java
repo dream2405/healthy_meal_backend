@@ -1,6 +1,5 @@
 package kr.ac.dankook.ace.healthy_meal_backend.action;
 
-import kr.ac.dankook.ace.healthy_meal_backend.entity.DailyIntake;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.MealInfo;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
 import kr.ac.dankook.ace.healthy_meal_backend.service.MealInfoFoodAnalyzeService;
@@ -41,7 +40,6 @@ public class MealInfoAction {
         List<String> gptResponse = mealInfoFoodAnalyzeService.gptAnalyzeImage(base64Image);
         List<String> analyzedRepresentativeFoods = mealInfoFoodAnalyzeService.representativeFoodRecordMapper(gptResponse);
         return mealInfoFoodAnalyzeService.foodRecordMapper(analyzedRepresentativeFoods, gptResponse);
-        //mealInfoFoodAnalyzeService.createFoodMealInfoRelation(null, null); -> 분석된 food 개수만큼 불러야함
     }
 
     public MealInfo completeMealInfo(User user, Long mealInfoId, Float amount, String diary, List<String> confirmedFoods) {
@@ -50,7 +48,14 @@ public class MealInfoAction {
         for (String food : confirmedFoods) {
             mealInfoFoodAnalyzeService.createFoodMealInfoRelation(food, mealInfoId);
         }
-        DailyIntake dailyIntake = nutrientIntakeService.updateDailyIntake(updatedMealInfo, user, updatedMealInfo.getCreatedAt().toLocalDate());
+        nutrientIntakeService.applyInsertDailyIntake(updatedMealInfo, user, updatedMealInfo.getCreatedAt().toLocalDate());
         return updatedMealInfo;
+    }
+
+    public void deleteMealInfo(Long mealInfoId, User user) {
+        MealInfo mealInfo = mealInfoFoodAnalyzeService.validateMealInfoId(mealInfoId, user.getId());
+        storageService.delete(mealInfo.getImgPath());
+        nutrientIntakeService.applyDeleteDailyIntake(mealInfo, user, mealInfo.getCreatedAt().toLocalDate());
+        mealInfoFoodAnalyzeService.deleteMealInfo(mealInfo, user);
     }
 }

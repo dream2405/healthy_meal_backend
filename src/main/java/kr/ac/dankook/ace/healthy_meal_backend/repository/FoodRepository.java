@@ -13,7 +13,7 @@ import java.util.Optional;
 public interface FoodRepository extends CrudRepository<Food, Long> {
     List<Food> findAllByName(String name);
 
-    Optional<Food> findByName(String name);
+    Optional<Food> findFirstByName(String name);
 
     @Query("SELECT f FROM Food f WHERE " +
             "(:name IS NULL OR f.name=:name) AND " +
