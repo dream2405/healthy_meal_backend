@@ -19,6 +19,7 @@ import kr.ac.dankook.ace.healthy_meal_backend.repository.UserRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.security.CustomUserDetails;
 import kr.ac.dankook.ace.healthy_meal_backend.service.DietaryScoreService;
 import kr.ac.dankook.ace.healthy_meal_backend.service.MealInfoFoodAnalyzeService;
+import kr.ac.dankook.ace.healthy_meal_backend.service.NutrientIntakeService;
 import kr.ac.dankook.ace.healthy_meal_backend.service.StorageService;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
@@ -46,10 +47,10 @@ public class UserController {
     private final ModelMapper modelMapper;
     private final MealInfoFoodAnalyzeService mealInfoFoodAnalyzeService;
     private final FoodController foodController;
-    private final DietaryScoreService dietaryScoreService;
     private final MealInfoAction mealInfoAction;
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
+    private final NutrientIntakeService nutrientIntakeService;
 
     public UserController(
             UserRepository userRepository,
@@ -60,9 +61,8 @@ public class UserController {
             ModelMapper modelMapper,
             MealInfoFoodAnalyzeService mealInfoFoodAnalyzeService,
             FoodController foodController,
-            DietaryScoreService dietaryScoreService,
-            MealInfoAction mealInfoAction
-    ) {
+            MealInfoAction mealInfoAction,
+            NutrientIntakeService nutrientIntakeService) {
         this.userRepository = userRepository;
         this.mealInfoRepository = mealInfoRepository;
         this.foodRepository = foodRepository;
@@ -71,8 +71,8 @@ public class UserController {
         this.modelMapper = modelMapper;
         this.mealInfoFoodAnalyzeService = mealInfoFoodAnalyzeService;
         this.foodController = foodController;
-        this.dietaryScoreService = dietaryScoreService;
         this.mealInfoAction = mealInfoAction;
+        this.nutrientIntakeService = nutrientIntakeService;
     }
 
     @GetMapping("/{userId}")
@@ -218,11 +218,13 @@ public class UserController {
 
     @GetMapping("/{userId}/daily-intake")
     @Operation(summary = "주어진 ID의 유저의 모든 일별섭취기록 가져오기", security = @SecurityRequirement(name = "BearerAuth"))
-    public ResponseEntity<List<DailyIntakeDTO>> getDailyIntakeByUserId(@PathVariable String userId) {
-        if (!userRepository.existsById(userId)) {
+    public ResponseEntity<List<DailyIntakeDTO>> getDailyIntakeByUserId(
+            @PathVariable String userId, @AuthenticationPrincipal CustomUserDetails userDetails) {
+        // @PathVariable_userId 유효성 검증
+        if (!userId.equals(userDetails.getUsername())) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
-        List<DailyIntake> dailyIntakes = dailyIntakeRepository.findByUserId(userId);
+        List<DailyIntake> dailyIntakes = nutrientIntakeService.getDailyIntakes(userId);
         List<DailyIntakeDTO> dailyIntakeDTOs = dailyIntakes.stream()
                 .map(dailyIntake -> modelMapper.map(dailyIntake, DailyIntakeDTO.class)).toList();
         return ResponseEntity.status(HttpStatus.OK).body(dailyIntakeDTOs);
@@ -280,20 +282,6 @@ public class UserController {
         HttpStatus status = isNewRecord ? HttpStatus.CREATED : HttpStatus.OK;
         return ResponseEntity.status(status).body(dailyIntakeDTO);
     }*/
-
-    @PutMapping("/{userId}/daily-intake/score")
-    @Operation(summary = "주어진 ID의 유저가 주어진 날짜의 일별섭취기록 점수 업데이트", security = @SecurityRequirement(name = "BearerAuth"))
-    public ResponseEntity<DailyIntakeDTO> updateDailyIntakeScore(
-            @PathVariable String userId,
-            @RequestParam(value = "date")
-            @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
-        try {
-            DailyIntake dailyIntake = dietaryScoreService.calculateScoreFromDailyIntake(userId, date);
-            return ResponseEntity.ok(modelMapper.map(dailyIntake, DailyIntakeDTO.class));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
-    }
 
     @DeleteMapping("/{userId}/daily-intake/{dailyIntakeId}")
     @Operation(summary = "주어진 ID의 유저가 주어진 ID의 일별섭취기록 삭제", security = @SecurityRequirement(name = "BearerAuth"))

@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 @Service
@@ -26,6 +27,10 @@ public class NutrientIntakeService {
     ) {
         this.dailyIntakeRepository = dailyIntakeRepository;
         this.mealInfoRepository = mealInfoRepository;
+    }
+
+    public List<DailyIntake> getDailyIntakes(String userId) {
+        return dailyIntakeRepository.findByUserId(userId);
     }
 
     @Transactional
@@ -46,7 +51,6 @@ public class NutrientIntakeService {
     private void addFoodNutrition(DailyIntake dailyIntake, Food food, int foodNum) {
         try {
             float calRatio = Float.parseFloat(food.getWeight().replaceAll("[^\\d.]", "")) / 100;
-            // 이거 생각해보니까 'ml'도 있네.?ㅋㅋㅋㅋㅋㅋㅋ
             dailyIntake.addMealIntake(
                     nullToZero(food.getEnergyKcal())*calRatio/foodNum,
                     nullToZero(food.getProteinG())*calRatio/foodNum,
