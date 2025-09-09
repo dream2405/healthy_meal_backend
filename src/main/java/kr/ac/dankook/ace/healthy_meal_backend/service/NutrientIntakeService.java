@@ -51,6 +51,8 @@ public class NutrientIntakeService {
     private void addFoodNutrition(DailyIntake dailyIntake, Food food, int foodNum) {
         try {
             float calRatio = Float.parseFloat(food.getWeight().replaceAll("[^\\d.]", "")) / 100;
+            System.out.println("계산된 음식중량 비율 : " + calRatio + " & 음식개수 : " + foodNum);
+            System.out.println("이전 칼로리 섭취량 : " + dailyIntake.getEnergyKcal());
             dailyIntake.addMealIntake(
                     nullToZero(food.getEnergyKcal())*calRatio/foodNum,
                     nullToZero(food.getProteinG())*calRatio/foodNum,
@@ -61,6 +63,8 @@ public class NutrientIntakeService {
                     nullToZero(food.getSodiumMg())*calRatio/foodNum,
                     nullToZero(food.getCholesterolMg())*calRatio/foodNum
             );
+            System.out.println("기록된 칼로리량 : " + nullToZero(food.getEnergyKcal())*calRatio/foodNum);
+            System.out.println("이후 칼로리 섭취량 : " + dailyIntake.getEnergyKcal());
         } catch (Exception e) {
             e.printStackTrace();
             throw e;

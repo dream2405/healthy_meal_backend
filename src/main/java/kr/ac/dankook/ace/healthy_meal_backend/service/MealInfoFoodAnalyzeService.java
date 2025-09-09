@@ -192,7 +192,7 @@ public class MealInfoFoodAnalyzeService {
             } else {
                 List<String> candidateFoods = foodRepository.findDistinctNameByRepresentativeFood(analyzedRepresentativeFoods.get(i));
                 String matchedFood = matchByLevenshtein(gptResponse.get(i), candidateFoods);
-                if (matchedFood == null) {
+                if ((matchedFood == null) || (matchedFood == "식별되지않음")) {
                     continue;
                 } else {
                     analyzedFoods.add(matchedFood);
@@ -200,7 +200,12 @@ public class MealInfoFoodAnalyzeService {
             }
         }
         System.out.println(analyzedFoods);
-        return analyzedFoods;
+        if (analyzedFoods.isEmpty()) {
+            analyzedFoods.add("식별되지않음");
+            return analyzedFoods;
+        } else {
+            return analyzedFoods;
+        }
     }
     private String matchByLevenshtein(String input, List<String> candidates) {
         double threshold = 0.4;
