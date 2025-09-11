@@ -4,7 +4,9 @@ build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
+/log
 nohup.out
+src/main/resources/application-secret.*
 
 ### STS ###
 .apt_generated

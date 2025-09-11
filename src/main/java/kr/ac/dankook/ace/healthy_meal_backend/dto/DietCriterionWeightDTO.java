@@ -18,6 +18,9 @@ public class DietCriterionWeightDTO {
     private Integer cholesterolMgWeight;
 
     public List<Integer> toList() {
-        return List.of(energyKcalWeight, carbohydrateGWeight, fatGWeight, proteinGWeight, celluloseGWeight, sugarsGWeight, sodiumMgWeight,  cholesterolMgWeight);
+        return List.of(
+                energyKcalWeight, carbohydrateGWeight,
+                fatGWeight, proteinGWeight, celluloseGWeight,
+                sugarsGWeight, sodiumMgWeight,  cholesterolMgWeight);
     }
 }

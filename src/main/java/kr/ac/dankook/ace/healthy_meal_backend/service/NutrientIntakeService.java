@@ -64,6 +64,13 @@ public class NutrientIntakeService {
                     nullToZero(food.getCholesterolMg())*calRatio/foodNum
             );
             System.out.println("기록된 칼로리량 : " + nullToZero(food.getEnergyKcal())*calRatio/foodNum);
+            System.out.println("기록된 단백질량 : " + nullToZero(food.getProteinG())*calRatio/foodNum);
+            System.out.println("기록된 지방량 : " + nullToZero(food.getFatG())*calRatio/foodNum);
+            System.out.println("기록된 탄수화물량 : " + nullToZero(food.getCarbohydrateG())*calRatio/foodNum);
+            System.out.println("기록된 당류량 : " + nullToZero(food.getSugarsG())*calRatio/foodNum);
+            System.out.println("기록된 식이섬유량 : " + nullToZero(food.getCelluloseG())*calRatio/foodNum);
+            System.out.println("기록된 나트륨량 : " + nullToZero(food.getSodiumMg())*calRatio/foodNum);
+            System.out.println("기록된 콜레스테롤량 : " + nullToZero(food.getCholesterolMg())*calRatio/foodNum);
             System.out.println("이후 칼로리 섭취량 : " + dailyIntake.getEnergyKcal());
         } catch (Exception e) {
             e.printStackTrace();

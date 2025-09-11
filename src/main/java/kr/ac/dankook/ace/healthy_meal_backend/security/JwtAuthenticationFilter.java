@@ -3,6 +3,8 @@ package kr.ac.dankook.ace.healthy_meal_backend.security;
 import java.io.IOException;
 
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -14,6 +16,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 public class JwtAuthenticationFilter extends OncePerRequestFilter{
 
+    private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
     private final JwtTokenProvider jwtTokenProvider;
 
     public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider) {
@@ -27,7 +30,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
 
         String path = request.getRequestURI();
         if (path.equals("/login") || path.equals("/signup") || path.startsWith("/uploads/")) {
-            System.out.println("✅ JwtAuthenticationFilter: 인증 없이 통과 → " + request.getRequestURI());
+            logger.info("✅ JwtAuthenticationFilter: 인증 없이 통과 → {}", request.getRequestURI());
             filterChain.doFilter(request, response);
             return;
         }
@@ -35,9 +38,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
         if (token != null && jwtTokenProvider.validateToken(token)) {
             Authentication auth = jwtTokenProvider.getAuthentication(token);
             SecurityContextHolder.getContext().setAuthentication(auth);
-            System.out.println("✅ JwtAuthenticationFilter: 인증 성공 → " + request.getRequestURI());
+            logger.info("✅ JwtAuthenticationFilter: 인증 성공 → {}", request.getRequestURI());
         } else {
-            System.out.println("⚠️ JwtAuthenticationFilter: 인증 토큰 없음 or 유효하지 않음 → " + request.getRequestURI());
+            logger.info("⚠️ JwtAuthenticationFilter: 인증 토큰 없음 or 유효하지 않음 → {}", request.getRequestURI());
         }
 
         filterChain.doFilter(request, response);

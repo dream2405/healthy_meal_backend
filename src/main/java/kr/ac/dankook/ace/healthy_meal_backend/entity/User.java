@@ -1,7 +1,6 @@
 package kr.ac.dankook.ace.healthy_meal_backend.entity;
 
 import jakarta.persistence.*;
-import kr.ac.dankook.ace.healthy_meal_backend.dto.DietCriterionWeightDTO;
 import lombok.Getter;
 import lombok.Setter;
 

@@ -9,11 +9,13 @@ import kr.ac.dankook.ace.healthy_meal_backend.entity.MealInfo;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.FoodRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.MealInfoRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 
 @RestController
 @RequestMapping("/foods")
@@ -22,6 +24,7 @@ public class FoodController {
     private final FoodRepository foodRepository;
     private final MealInfoRepository mealInfoRepository;
 
+    @Autowired
     public FoodController(final FoodRepository foodRepository, final MealInfoRepository mealInfoRepository) {
         this.foodRepository = foodRepository;
         this.mealInfoRepository = mealInfoRepository;
@@ -42,7 +45,9 @@ public class FoodController {
     @Operation(summary = "주어진 ID를 가진 특정 음식 가져오기", security = @SecurityRequirement(name = "BearerAuth"))
     public ResponseEntity<Food> getFoodById(@PathVariable long foodId) {
         var food = foodRepository.findById(foodId);
-        return food.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(null));
+        return food
+                .map(ResponseEntity::ok)
+                .orElseThrow(() -> new NoSuchElementException("음식을 찾을 수 없습니다: " + foodId));
     }
 
     @GetMapping("/{foodId}/users")
@@ -51,7 +56,7 @@ public class FoodController {
         var food = foodRepository.findById(foodId);
         return food
                 .map(value -> ResponseEntity.ok(value.getUsers()))
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(null));
+                .orElseThrow(() -> new NoSuchElementException("음식을 찾을 수 없습니다: " + foodId));
     }
 
     @GetMapping("/{foodId}/meal-info")
@@ -60,7 +65,7 @@ public class FoodController {
         var food = foodRepository.findById(foodId);
         return food
                 .map(value -> ResponseEntity.ok(value.getMealInfos()))
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+                .orElseThrow(() -> new NoSuchElementException("음식을 찾을 수 없습니다: " + foodId));
     }
 
     @PutMapping("/{foodId}/meal-info/{mealInfoId}")
@@ -72,7 +77,7 @@ public class FoodController {
         var mealInfo = mealInfoRepository.findById(mealInfoId);
 
         if (food.isEmpty() || mealInfo.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            throw new NoSuchElementException("주어진 ID의 음식 혹은 주어진 ID의 식단정보가 없음");
         } else {
             food.get().addMealInfo(mealInfo.get());
             return ResponseEntity.status(HttpStatus.valueOf(204)).build();
@@ -86,7 +91,7 @@ public class FoodController {
         var mealInfo = mealInfoRepository.findById(mealInfoId);
 
         if (food.isEmpty() || mealInfo.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            throw new NoSuchElementException("주어진 ID의 음식 혹은 주어진 ID의 식단정보가 없음");
         } else {
             food.get().removeMealInfo(mealInfo.get());
             return ResponseEntity.status(HttpStatus.valueOf(204)).build();

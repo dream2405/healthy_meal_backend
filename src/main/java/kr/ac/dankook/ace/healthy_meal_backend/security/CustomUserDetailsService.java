@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.UserRepository;
 
 @Service
-public class CustomUserDetailsService implements UserDetailsService{
+public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
 

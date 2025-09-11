@@ -1,5 +1,6 @@
 package kr.ac.dankook.ace.healthy_meal_backend.action;
 
+import jakarta.transaction.Transactional;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.MealInfo;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
 import kr.ac.dankook.ace.healthy_meal_backend.service.MealInfoFoodAnalyzeService;
@@ -29,6 +30,7 @@ public class MealInfoAction {
         this.nutrientIntakeService = nutrientIntakeservice;
     }
 
+    @Transactional
     public MealInfo createMealInfo(MultipartFile file, User user) {
         String filePath = storageService.store(file);
         return mealInfoFoodAnalyzeService.createMealInfo(filePath, user);

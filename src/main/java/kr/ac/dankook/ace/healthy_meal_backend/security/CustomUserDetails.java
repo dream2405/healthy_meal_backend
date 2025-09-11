@@ -10,10 +10,10 @@ import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
 import lombok.Getter;
 
 @Getter
-public class CustomUserDetails implements UserDetails{
-    
+public class CustomUserDetails implements UserDetails {
+
     private final User user;
-    
+
     public CustomUserDetails(User user) {
         this.user = user;
     }

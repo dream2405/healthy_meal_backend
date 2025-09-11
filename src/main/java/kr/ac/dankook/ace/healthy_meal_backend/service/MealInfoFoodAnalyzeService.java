@@ -29,32 +29,29 @@ public class MealInfoFoodAnalyzeService {
     private String openAiApiKey;
     private static final String OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
     private static final String MODEL = "o4-mini";
-    private final UserRepository userRepository;
+    private static final float COSINETHRESHOLD = 0.35f;
+    //private static final float LEVENSHTEINTHRESHOLD = 0.5f;
     private final FoodRepository foodRepository;
     private final MealInfoRepository mealInfoRepository;
     private final RestClient restClient;
-    private final StorageService storageService;
 
     private static final Logger logger = LoggerFactory.getLogger(MealInfoFoodAnalyzeService.class);
 
     @Autowired
     public MealInfoFoodAnalyzeService(
-            UserRepository userRepository,
             MealInfoRepository mealInfoRepository,
-            StorageService storageService,
             FoodRepository foodRepository
     ) {
-        this.userRepository = userRepository;
         this.mealInfoRepository = mealInfoRepository;
         this.restClient = RestClient.builder()
                 .baseUrl(OPENAI_API_URL)
                 .defaultHeader("Content-Type", "application/json")
                 .requestFactory(createSimpleRequestFactory())
                 .build();
-        this.storageService = storageService;
         this.foodRepository = foodRepository;
     }
 
+    @Transactional
     public MealInfo createMealInfo(String imgPath, User user) {
         MealInfo mealInfo = new MealInfo();
         mealInfo.setImgPath(imgPath);
@@ -65,25 +62,21 @@ public class MealInfoFoodAnalyzeService {
 
     public List<String> gptAnalyzeImage(String base64Image) {
         // 프롬프트 생성
-        String prompt = String.format(
-                """
-                        이미지 속에 보이는 음식을 모두 구체적인 이름으로 나열해주세요.
-                       
-                        ⚠️ 규칙:
-                        1. 설명 없이 음식 이름만 쉼표로 구분하여 출력해주세요.
-                        2. 만약 식별되는 음식이 없다면 '식별되지않음'이라고 답해주세요
-                        3. 음식 이름은 단어별로 띄어쓰기하여 출력해주세요.
-                        4. 단일 음식에 대해서 쉼표구분 없이 최대한 띄어쓰기를 사용해서 출력해주세요. (스파게티, 토마토 크림 소스 -> 토마토 크림 스파게티)
-                        5. 예외항목 음식들은 식별될 수 없으므로 대체되는 음식명으로 출력해주세요.
-                        
-                        예외항목:
-                        파스타(->스파게티), 돈까스(->돈가스)
-                        
-                        출력예시:
-                        불고기, 밥, 김치, 초콜릿 칩 스콘
-                        또는
-                        식별되지않음"""
-        );
+        String prompt = """
+               이미지 속 음식은 한 그릇 단위의 요리라고 가정하고, 그릇 단위로 구체적인 음식명을 출력해주세요.
+               
+                ⚠️ 규칙:
+                1. 설명 없이 음식 이름만 쉼표로 구분하여 출력.
+                2. 만약 식별되는 음식이 없다면 '식별되지않음' 이라고 출력.
+                3. 음식 이름은 단어별로 띄어쓰기하여 출력.
+                4. 단일 음식에 대해서 쉼표구분 없이 최대한 띄어쓰기를 사용해서 출력. (스파게티, 토마토 크림 소스 -> 토마토 크림 스파게티)
+                5. 예외항목: 파스타 -> 스파게티, 돈까스 -> 돈가스
+                6. 하나의 음식에는 하나의 음식명만 출력.
+                
+                출력예시:
+                불고기, 밥, 김치, 초콜릿 칩 스콘
+                또는
+                식별되지않음""";
         // 요청 body 구성
         Map<String, Object> requestBody = Map.of(
                 "model", MODEL,
@@ -140,11 +133,10 @@ public class MealInfoFoodAnalyzeService {
         for (String gpt : gptResponse) {
             representativeFoods.add(matchByCosine(gpt, candidateFoods));
         }
-        System.out.println(representativeFoods);
+        logger.info("대표식품명 코사인유사도 매핑결과 : {}", representativeFoods);
         return representativeFoods;
     }
     private String matchByCosine(String input, List<String> candidates) {
-        double threshold = 0.25;
         String bestMatch = null;
         double bestScore = 0.0;
         for (String candidate : candidates) {
@@ -154,7 +146,8 @@ public class MealInfoFoodAnalyzeService {
                 bestMatch = candidate;
             }
         }
-        return (bestScore >= threshold) ?  bestMatch : null;
+        logger.info("대표식품명 코사인유사도 계산결과 : {}, {}점", bestMatch, bestScore);
+        return (bestScore >= COSINETHRESHOLD) ?  bestMatch : null;
     }
     private double getCosineSimilarity(String s1, String s2) {
         List<String> words1 = Arrays.asList(s1.split("\\s+"));
@@ -192,14 +185,14 @@ public class MealInfoFoodAnalyzeService {
             } else {
                 List<String> candidateFoods = foodRepository.findDistinctNameByRepresentativeFood(analyzedRepresentativeFoods.get(i));
                 String matchedFood = matchByLevenshtein(gptResponse.get(i), candidateFoods);
-                if ((matchedFood == null) || (matchedFood == "식별되지않음")) {
+                if ((matchedFood == null) || (matchedFood.equals("식별되지않음"))) {
                     continue;
                 } else {
                     analyzedFoods.add(matchedFood);
                 }
             }
         }
-        System.out.println(analyzedFoods);
+        logger.info("최종식품명 levenshtein 유사도 매핑결과 : {}", analyzedFoods);
         if (analyzedFoods.isEmpty()) {
             analyzedFoods.add("식별되지않음");
             return analyzedFoods;
@@ -208,7 +201,6 @@ public class MealInfoFoodAnalyzeService {
         }
     }
     private String matchByLevenshtein(String input, List<String> candidates) {
-        double threshold = 0.4;
         String bestMatch = null;
         double bestScore = 0.0;
         for (String candidate : candidates) {
@@ -218,7 +210,8 @@ public class MealInfoFoodAnalyzeService {
                 bestMatch = candidate;
             }
         }
-        return (bestScore >= threshold) ? bestMatch : "식별되지않음";
+        logger.info("최종식품명 levenshtein 유사도 계산결과 : {}, {}점", bestMatch, bestScore);
+        return bestMatch;
     }
     private double getLevenshteinSimilarity(String s1, String s2) {
         LevenshteinDistance distance = new LevenshteinDistance();
