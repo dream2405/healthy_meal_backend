@@ -6,7 +6,6 @@ import kr.ac.dankook.ace.healthy_meal_backend.entity.MealInfo;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.FoodRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.MealInfoRepository;
-import kr.ac.dankook.ace.healthy_meal_backend.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,7 +62,7 @@ public class MealInfoFoodAnalyzeService {
     public List<String> gptAnalyzeImage(String base64Image) {
         // 프롬프트 생성
         String prompt = """
-               이미지 속 음식은 한 그릇 단위의 요리라고 가정하고, 그릇 단위로 구체적인 음식명을 출력해주세요.
+                이미지 속 음식은 한 그릇 단위의 요리라고 가정하고, 그릇 단위로 구체적인 음식명을 출력해주세요.
                
                 ⚠️ 규칙:
                 1. 설명 없이 음식 이름만 쉼표로 구분하여 출력.
@@ -72,6 +71,7 @@ public class MealInfoFoodAnalyzeService {
                 4. 단일 음식에 대해서 쉼표구분 없이 최대한 띄어쓰기를 사용해서 출력. (스파게티, 토마토 크림 소스 -> 토마토 크림 스파게티)
                 5. 예외항목: 파스타 -> 스파게티, 돈까스 -> 돈가스
                 6. 하나의 음식에는 하나의 음식명만 출력.
+              
                 
                 출력예시:
                 불고기, 밥, 김치, 초콜릿 칩 스콘

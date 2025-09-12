@@ -44,3 +44,4 @@ out/
 
 # macOS
 .DS_Store
+src/.DS_Store
