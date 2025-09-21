@@ -44,7 +44,7 @@ public class FileSystemStorageService implements StorageService {
     // 허용되지 않는 파일 확장자 목록 (보안 강화)
     private static final String[] DISALLOWED_EXTENSIONS = {
             ".exe", ".dll", ".bat", ".sh", ".jar", ".com", ".cmd", ".vb", ".vbs", ".js", ".php", ".py", ".pl", ".rb"
-            
+
     };
 
     /**
