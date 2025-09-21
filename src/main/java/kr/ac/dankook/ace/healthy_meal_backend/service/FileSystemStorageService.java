@@ -1,8 +1,10 @@
 package kr.ac.dankook.ace.healthy_meal_backend.service;
 
 import kr.ac.dankook.ace.healthy_meal_backend.exception.StorageException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
@@ -33,8 +35,7 @@ public class FileSystemStorageService implements StorageService {
     private static final Logger logger = LoggerFactory.getLogger(FileSystemStorageService.class);
 
     // 저장소 루트 위치를 클래스 내 상수로 정의.
-    
-    private static final String DEFAULT_STORAGE_LOCATION = "/mnt/vol1/mysql_dir/img";
+
     private final Path rootLocation;
 
     // 파일 크기 제한 = 100MB
@@ -43,15 +44,19 @@ public class FileSystemStorageService implements StorageService {
     // 허용되지 않는 파일 확장자 목록 (보안 강화)
     private static final String[] DISALLOWED_EXTENSIONS = {
             ".exe", ".dll", ".bat", ".sh", ".jar", ".com", ".cmd", ".vb", ".vbs", ".js", ".php", ".py", ".pl", ".rb"
-            
+
     };
 
     /**
      * FileSystemStorageService 생성자입니다.
      * 저장소 루트 위치를 초기화합니다.
      */
-    public FileSystemStorageService() {
-        this.rootLocation = Paths.get(DEFAULT_STORAGE_LOCATION).toAbsolutePath().normalize();
+    public FileSystemStorageService(@Value("${storage.location:uploads}") String location) {
+        if (Paths.get(location).isAbsolute()) {
+            this.rootLocation = Paths.get(location).normalize();
+        } else {
+            this.rootLocation = Paths.get(System.getProperty("user.dir")).resolve(location).normalize();
+        }
         logger.info("File system storage root location set to: {}", this.rootLocation);
     }
 
@@ -304,4 +309,6 @@ public class FileSystemStorageService implements StorageService {
             throw new RuntimeException(e);
         }
     }
+
+
 }

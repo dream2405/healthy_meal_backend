@@ -1,6 +1,7 @@
 package kr.ac.dankook.ace.healthy_meal_backend.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -24,7 +25,7 @@ public class DietCriterion {
     private Character gender;
 
     @Column(name = "energy_kcal")
-    private Integer energyKcal;
+    private Float energyKcal;
 
     @Column(name = "protein_g")
     private Float proteinG;
@@ -46,5 +47,4 @@ public class DietCriterion {
 
     @Column(name = "cholesterol_mg")
     private Float cholesterolMg;
-
 }

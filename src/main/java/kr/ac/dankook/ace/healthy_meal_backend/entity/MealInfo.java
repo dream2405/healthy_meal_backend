@@ -49,7 +49,7 @@ public class MealInfo {
     private User user; // 식단 정보를 기록한 유저
 
     // Food와의 판별 다대다 연관관계
-    @OneToMany(mappedBy = "mealInfo", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "mealInfo", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<MealInfoFoodLink> mealInfoFoodLinks = new ArrayList<>();
 
     // 연관관계 편의 메서드

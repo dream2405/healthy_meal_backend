@@ -45,7 +45,7 @@ public class Food {
     private String weight;
 
     @Column(name = "energy_kcal")
-    private Integer energyKcal; // nullable int -> Integer (래퍼 타입)
+    private Double energyKcal; // nullable int -> Integer (래퍼 타입)
 
     @Column(name = "protein_g")
     private Double proteinG; // nullable double -> Double (래퍼 타입)

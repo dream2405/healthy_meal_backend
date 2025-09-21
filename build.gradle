@@ -34,6 +34,18 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     runtimeOnly 'com.mysql:mysql-connector-j'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    // SpringSecurity
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    // JWT
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5' // Jackson 직렬화/역직렬화 지원
+    // 사용자 인증을 위한 패스워드 암호화 (선택)
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    // 패스워드 인코딩용 (BCrypt 등)
+    implementation 'org.springframework.security:spring-security-crypto'
+    // Levenshtein 문자열 유사도 측정용
+    implementation 'org.apache.commons:commons-text:1.11.0'
 }
 
 tasks.named('test') {

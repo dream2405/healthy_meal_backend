@@ -14,4 +14,6 @@ public interface DailyIntakeRepository extends CrudRepository<DailyIntake, Integ
     boolean existsByUserIdAndId(String userId, Integer id);
 
     List<DailyIntake> findByUserId(String userId);
+
+    List<DailyIntake> findByDay(LocalDate day);
 }
