@@ -12,8 +12,8 @@ import kr.ac.dankook.ace.healthy_meal_backend.entity.MealInfo;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.FoodRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.MealInfoRepository;
+import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,19 +22,15 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/foods")
 @Tag(name = "음식")
 public class FoodController {
+
     private final FoodRepository foodRepository;
     private final MealInfoRepository mealInfoRepository;
     private final ModelMapper modelMapper;
 
-    @Autowired
-    public FoodController(final FoodRepository foodRepository, final MealInfoRepository mealInfoRepository, ModelMapper modelMapper) {
-        this.foodRepository = foodRepository;
-        this.mealInfoRepository = mealInfoRepository;
-        this.modelMapper = modelMapper;
-    }
 
     @GetMapping()
     @Operation(summary = "이름, 대표음식명, 대분류명으로 음식들 가져오기",
@@ -82,6 +78,7 @@ public class FoodController {
         Food food = modelMapper.map(foodPostDTO, Food.class);
         food = foodRepository.save(food);
         FoodDTO foodDTO = modelMapper.map(food, FoodDTO.class);
+
         return ResponseEntity.status(HttpStatus.CREATED).body(foodDTO);
     }
 
@@ -97,21 +94,20 @@ public class FoodController {
             throw new NoSuchElementException("주어진 ID의 음식 혹은 주어진 ID의 식단정보가 없음");
         } else {
             food.get().addMealInfo(mealInfo.get());
-            return ResponseEntity.status(HttpStatus.valueOf(204)).build();
+            return ResponseEntity.noContent().build();
         }
     }
 
     @DeleteMapping("/{foodId}")
     @Operation(summary = "주어진 ID의 음식 삭제하기", security = @SecurityRequirement(name = "BearerAuth"))
     @Transactional
-    public ResponseEntity<FoodDTO> deleteFoodById(@PathVariable long foodId) {
+    public ResponseEntity<Object> deleteFoodById(@PathVariable long foodId) {
         var foodOptional = foodRepository.findById(foodId);
 
         Food food = foodOptional.orElseThrow(() -> new NoSuchElementException("주어진 ID의 음식이 없음"));
         foodRepository.delete(food);
-        FoodDTO foodDTO = modelMapper.map(food, FoodDTO.class);
 
-        return ResponseEntity.status(HttpStatus.valueOf(204)).body(foodDTO);
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{foodId}/meal-info/{mealInfoId}")
@@ -124,7 +120,8 @@ public class FoodController {
             throw new NoSuchElementException("주어진 ID의 음식 혹은 주어진 ID의 식단정보가 없음");
         } else {
             food.get().removeMealInfo(mealInfo.get());
-            return ResponseEntity.status(HttpStatus.valueOf(204)).build();
+            return ResponseEntity.noContent().build();
         }
     }
+
 }

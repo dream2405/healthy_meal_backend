@@ -7,29 +7,21 @@ import kr.ac.dankook.ace.healthy_meal_backend.repository.UserRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.service.UserService;
 import kr.ac.dankook.ace.healthy_meal_backend.dto.DietCriterionWeightDTO;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.DietCriterion;
-import kr.ac.dankook.ace.healthy_meal_backend.security.CustomUserDetails;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.NoSuchElementException;
-import java.util.Optional;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/diet-criteria")
 @Tag(name = "식단기준")
 public class DietCriterionController {
 
     private final UserService userService;
     private final UserRepository userRepository;
-
-    @Autowired
-    public DietCriterionController(UserService userService, UserRepository userRepository) {
-        this.userService = userService;
-        this.userRepository = userRepository;
-    }
 
     @Operation(summary = "사용자별 영양소 섭취기준 조회", security = @SecurityRequirement(name = "BearerAuth"))
     @GetMapping("/{userId}")

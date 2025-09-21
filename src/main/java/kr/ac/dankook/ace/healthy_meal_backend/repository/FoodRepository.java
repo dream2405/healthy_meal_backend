@@ -11,6 +11,7 @@ import java.util.Optional;
 
 @Repository
 public interface FoodRepository extends CrudRepository<Food, Long> {
+
     List<Food> findAllByName(String name);
 
     Optional<Food> findFirstByName(String name);
@@ -45,5 +46,4 @@ public interface FoodRepository extends CrudRepository<Food, Long> {
     @Query("SELECT DISTINCT f.representativeFood FROM Food f")
     List<String> findDistinctRepresentativeNames();
 
-    
 }
