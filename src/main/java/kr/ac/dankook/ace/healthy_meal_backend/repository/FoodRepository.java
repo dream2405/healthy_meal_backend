@@ -44,4 +44,6 @@ public interface FoodRepository extends CrudRepository<Food, Long> {
 
     @Query("SELECT DISTINCT f.representativeFood FROM Food f")
     List<String> findDistinctRepresentativeNames();
+
+    
 }

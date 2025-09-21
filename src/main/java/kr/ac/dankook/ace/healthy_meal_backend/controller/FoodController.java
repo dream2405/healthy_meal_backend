@@ -4,11 +4,15 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
+import kr.ac.dankook.ace.healthy_meal_backend.dto.FoodDTO;
+import kr.ac.dankook.ace.healthy_meal_backend.dto.FoodPostDTO;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.Food;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.MealInfo;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.FoodRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.MealInfoRepository;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,11 +27,13 @@ import java.util.NoSuchElementException;
 public class FoodController {
     private final FoodRepository foodRepository;
     private final MealInfoRepository mealInfoRepository;
+    private final ModelMapper modelMapper;
 
     @Autowired
-    public FoodController(final FoodRepository foodRepository, final MealInfoRepository mealInfoRepository) {
+    public FoodController(final FoodRepository foodRepository, final MealInfoRepository mealInfoRepository, ModelMapper modelMapper) {
         this.foodRepository = foodRepository;
         this.mealInfoRepository = mealInfoRepository;
+        this.modelMapper = modelMapper;
     }
 
     @GetMapping()
@@ -68,6 +74,17 @@ public class FoodController {
                 .orElseThrow(() -> new NoSuchElementException("음식을 찾을 수 없습니다: " + foodId));
     }
 
+    @PostMapping()
+    @Operation(summary = "음식 추가하기",
+            description = "모든 파라미터는 필수", security = @SecurityRequirement(name = "BearerAuth"))
+    @Transactional
+    public ResponseEntity<FoodDTO> createFood(@RequestBody @Valid FoodPostDTO foodPostDTO) {
+        Food food = modelMapper.map(foodPostDTO, Food.class);
+        food = foodRepository.save(food);
+        FoodDTO foodDTO = modelMapper.map(food, FoodDTO.class);
+        return ResponseEntity.status(HttpStatus.CREATED).body(foodDTO);
+    }
+
     @PutMapping("/{foodId}/meal-info/{mealInfoId}")
     @Operation(summary = "주어진 ID의 음식이 주어진 ID의 식단정보로 판별 정보 추가",
             description = "멱등성 - 여러번 추가해도 하나만 추가됨", security = @SecurityRequirement(name = "BearerAuth"))
@@ -82,6 +99,19 @@ public class FoodController {
             food.get().addMealInfo(mealInfo.get());
             return ResponseEntity.status(HttpStatus.valueOf(204)).build();
         }
+    }
+
+    @DeleteMapping("/{foodId}")
+    @Operation(summary = "주어진 ID의 음식 삭제하기", security = @SecurityRequirement(name = "BearerAuth"))
+    @Transactional
+    public ResponseEntity<FoodDTO> deleteFoodById(@PathVariable long foodId) {
+        var foodOptional = foodRepository.findById(foodId);
+
+        Food food = foodOptional.orElseThrow(() -> new NoSuchElementException("주어진 ID의 음식이 없음"));
+        foodRepository.delete(food);
+        FoodDTO foodDTO = modelMapper.map(food, FoodDTO.class);
+
+        return ResponseEntity.status(HttpStatus.valueOf(204)).body(foodDTO);
     }
 
     @DeleteMapping("/{foodId}/meal-info/{mealInfoId}")
