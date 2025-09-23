@@ -30,10 +30,9 @@ public class MealInfoFoodAnalyzeService {
     private String openAiApiKey;
     private static final String OPENAI_API_URL = "https://api.openai.com/v1/";
     private static final String OPENAI_CONV = OPENAI_API_URL + "conversations";
-    private static final String OPENAI_RESP = OPENAI_API_URL + "responses";
-    private static final String MODEL = "gpt-5";
+    private static final String OPENAI_RESP = OPENAI_API_URL + "conversations/";
+    private static final String MODEL = "gpt-4.1-mini";
     private static final float COSINETHRESHOLD = 0.35f;
-    //private static final float LEVENSHTEINTHRESHOLD = 0.5f;
     private final FoodRepository foodRepository;
     private final MealInfoRepository mealInfoRepository;
     private final RestClient restClient;
@@ -47,7 +46,7 @@ public class MealInfoFoodAnalyzeService {
     ) {
         this.mealInfoRepository = mealInfoRepository;
         this.restClient = RestClient.builder()
-                //.baseUrl(OPENAI_API_URL)
+                //.baseUrl(OPENAI_API_URL) -> URL은 추후 개별적으로 설정하여 HTTP Request
                 .defaultHeader("Content-Type", "application/json")
                 .requestFactory(createSimpleRequestFactory())
                 .build();
@@ -84,44 +83,52 @@ public class MealInfoFoodAnalyzeService {
      */
 
     public List<String> gptAnalyzeImage(String base64Image) {
+        long start = System.currentTimeMillis();
+
+        String convUUID;
         List<String> majorCategories = foodRepository.findDistinctMajorCategoryNative();
-
-        // GPT Conversation 방파기
-        String convUUID = createAnalyze();
-
-        // 첫번째 gpt 분석 - 이미지 및 ID로 맞는 대분류 매칭
-        List<String> majorCategoriesResult = firstanalyzeImage(base64Image, majorCategories, convUUID);
-
+        List<String> majorCategoriesResult;
+        List<String> representativeFoods = new ArrayList<>();
+        List<String> representativeFoodsResult;
+        //List<String> foods = new ArrayList<>();
+        List<String> foodResult = new ArrayList<>();
+        List<Food> foodList = new ArrayList<>();
         List<String> result = new ArrayList<>();
-        List<String> foodNames = new ArrayList<>();
 
+        // GPT Conversation 방파기 - conversation ID 반환받기 -> createAnalyze()
+        convUUID = createAnalyze();
+        // 첫번째 gpt 분석 - 식단 이미지로 맞는 대분류 매칭 -> firstanalyzeImage()
+        majorCategoriesResult = firstanalyzeImage(base64Image, majorCategories, convUUID);
         for (String majorCategory : majorCategoriesResult) {
-            var representativeFoods = foodRepository.findDistinctRepresentativeFoodByMajorCategory(majorCategory);
+            representativeFoods.addAll(foodRepository.findDistinctRepresentativeFoodByMajorCategory(majorCategory));
+        }
+        // 두번째 gpt 분석 - 대표 음식 매칭 - analyzeImage()
+        representativeFoodsResult = analyzeImage(representativeFoods, convUUID);
+        for (String representativeFood : representativeFoodsResult) {
+            List<String> foods = new ArrayList<>();
+            foods.addAll(foodRepository.findDistinctNameByRepresentativeFood(representativeFood));
 
-            // 두번째 gpt 분석 - ID로 맞는 대표 음식 매칭
-            var representativeFoodsResult = analyzeImage(representativeFoods, convUUID);
-
-            for (String representativeFood : representativeFoodsResult) {
-                var foods = foodRepository.findDistinctNameByRepresentativeFood(representativeFood);
-
-                // 마지막 gpt 분석 - ID로 맞는 음식 이름 매칭
-                foodNames.addAll(analyzeImage(foods, convUUID));
-            }
+            // 마지막 gpt 분석 - 최종 음식 매칭 - analyzeImage()
+            foodResult.addAll(analyzeImage(foods, convUUID));
+        }
+        // 마지막 gpt 분석 - 최종 음식 매칭 - analyzeImage()
+        //foodResult = analyzeImage(foods, convUUID);
+        // 최종 데이터베이스 검증 및 결과 반환
+        for (String foodName : foodResult) {
+            foodList.addAll(foodRepository.findAllByName(foodName));
         }
 
-        for (String foodName : foodNames) {
-            List<Food> foodResult = foodRepository.findAllByName(foodName);
-            if (foodResult.isEmpty())
-                return result;
-            result = foodResult.stream()
+        long end = System.currentTimeMillis();
+        logger.info("GPT 사진분석 소요시간 : {} s", (end - start)/1000);
+
+        if (foodList.isEmpty()) {
+            return result;
+        } else {
+            result = foodList.stream()
                     .map(Food::getName)
                     .collect(Collectors.toList());
-        }
-
-        if (foodNames.isEmpty())
             return result;
-
-        return result;
+        }
     }
     private String createAnalyze() {
         // 요청 body 구성
@@ -158,10 +165,10 @@ public class MealInfoFoodAnalyzeService {
             throw new RuntimeException("conv 생성중 오류가 발생했습니다: " + e.getMessage(), e);
         }
     }
-    public List<String> firstanalyzeImage(String base64Image, List<String> cagetories, String convUUID) {
+    private List<String> firstanalyzeImage(String base64Image, List<String> categories, String convUUID) {
         // 리스트를 문자열로 변환
-        String categoriesString = String.join(", ", cagetories);
-        System.out.println(categoriesString);
+        String categoriesString = String.join(", ", categories);
+        System.out.println("GPT 선제시목록(" + categories.size() + ")개 : " + categoriesString);
 
         // 프롬프트 생성
         String prompt = String.format(
@@ -183,10 +190,9 @@ public class MealInfoFoodAnalyzeService {
 
         // 요청 body 구성
         Map<String, Object> requestBody = Map.of(
-                "model", MODEL,
-                "conversation", convUUID,
-                "input", List.of(
+                "items", List.of(
                         Map.of(
+                                "type", "message",
                                 "role", "user",
                                 "content", List.of(
                                         Map.of(
@@ -195,22 +201,19 @@ public class MealInfoFoodAnalyzeService {
                                         ),
                                         Map.of(
                                                 "type", "input_image",
-                                                "image_url", "data:image/jpeg;base64," + base64Image
+                                                //"image_url", "data:image/jpeg;base64," + base64Image -> 이거 진짜 어케함......
+                                                "image_url", "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8N3x8cGl6emF8ZW58MHx8MHx8fDA%3D"
                                         )
                                 )
                         )
-                ),
-                /*"metadata", Map.of(
-                        "topic", "healthymeal"
-                ),*/
-                "max_output_tokens", 1000  // 여러 음식 이름을 위해 토큰 증가
+                )
+                //"max_output_tokens", 1000  // 여러 음식 이름을 위해 토큰 증가
         );
 
         try {
             // OpenAI API 호출
-            String url = OPENAI_RESP;
             Map<String, Object> response = restClient.post()
-                    .uri(url)
+                    .uri(OPENAI_RESP+convUUID+"/items")
                     .header("Authorization", "Bearer " + openAiApiKey)
                     .body(requestBody)
                     .retrieve()
@@ -218,18 +221,19 @@ public class MealInfoFoodAnalyzeService {
 
             // 응답에서 텍스트 추출
             String result = extractContentFromResponse(response);
-            System.out.println(result);
+            System.out.println("GPT 응답결과 : " + result);
 
             // 결과를 리스트로 변환하고 검증
-            return parseAndValidateResult(result, cagetories);
+            return parseAndValidateResult(result, categories);
 
         } catch (Exception e) {
             throw new RuntimeException("이미지 분석 중 오류가 발생했습니다: " + e.getMessage(), e);
         }
     }
-    public List<String> analyzeImage(List<String> categories, String convUUID) {
+    private List<String> analyzeImage(List<String> categories, String convUUID) {
         // 리스트를 문자열로 변환
         String categoriesString = String.join(", ", categories);
+        System.out.println("GPT 선제시목록(" + categories.size() + ")개 : " + categoriesString);
 
         // 프롬프트 생성
         String prompt = String.format(
@@ -245,17 +249,15 @@ public class MealInfoFoodAnalyzeService {
                         4. 각 카테고리 이름은 목록에 있는 정확한 카테고리를 사용해주세요
                         5. 만약 목록에 해당하는 음식이 없다면 '해당없음'이라고 답해주세요
                         6. 답변 예시: '김치찌개, 밥, 계란후라이' 또는 '피자' 또는 '해당없음''
-                        7. 
-                        8. 추가 설명 없이 카테고리 이름만 작성해주세요""",
+                        7. 추가 설명 없이 카테고리 이름만 작성해주세요""",
                 categoriesString
         );
 
         // 요청 body 구성
         Map<String, Object> requestBody = Map.of(
-                "model", MODEL,
-                "conversation", convUUID,
-                "input", List.of(
+                "items", List.of(
                         Map.of(
+                                "type", "message",
                                 "role", "user",
                                 "content", List.of(
                                         Map.of(
@@ -264,18 +266,14 @@ public class MealInfoFoodAnalyzeService {
                                         )
                                 )
                         )
-                    ),
-                /*"metadata", Map.of(
-                        "topic", "project-x"
-                ),*/
-                "max_output_tokens", 1000  // 여러 음식 이름을 위해 토큰 증가
+                )
+                //"max_output_tokens", 1000  // 여러 음식 이름을 위해 토큰 증가
         );
 
         try {
             // OpenAI API 호출
-            String url = OPENAI_RESP;
             Map<String, Object> response = restClient.post()
-                    .uri(url)
+                    .uri(OPENAI_RESP+convUUID+"/items")
                     .header("Authorization", "Bearer " + openAiApiKey)
                     .body(requestBody)
                     .retrieve()
@@ -283,16 +281,53 @@ public class MealInfoFoodAnalyzeService {
 
             // 응답에서 텍스트 추출
             String result = extractContentFromResponse(response);
-            System.out.println(result);
+            System.out.println("GPT 응답결과 : " + result);
 
-            // 결과를 리스트로 변환하고 검증
+            // 결과를 리스트로 변환하고 검증 -> 검증되지 못한 결과는 empty list로 반환됨
             return parseAndValidateResult(result, categories);
 
         } catch (Exception e) {
             throw new RuntimeException("이미지 분석 중 오류가 발생했습니다: " + e.getMessage(), e);
         }
     }
+    private List<String> parseAndValidateResult(String gptResponse, List<String> categories) {
+        List<String> validFoods = new ArrayList<>();
+        String trimmedResponse = gptResponse.trim();
 
+        // "해당없음"인 경우
+        if ("해당없음".equals(trimmedResponse)) {
+            return validFoods;
+        }
+
+        // 쉼표로 분리하여 개별 음식 이름 추출
+        List<String> detectedFoods = Arrays.stream(trimmedResponse.split(","))
+                .map(String::trim)
+                .filter(food -> !food.isEmpty())
+                .toList();
+
+        // 각 음식이 실제 목록에 있는지 검증 (목록이 notnull일때만)
+        if (!categories.isEmpty()) {
+            for (String detectedFood : detectedFoods) {
+                if (categories.contains(detectedFood)) {
+                    validFoods.add(detectedFood);
+                } else {
+                    // 유사한 음식 찾기
+                    String closestMatch = findClosestMatch(detectedFood, categories);
+                    if (!"해당하는 레코드 없음".equals(closestMatch) && !validFoods.contains(closestMatch)) {
+                        validFoods.add(closestMatch);
+                    }
+                }
+            }
+        } else {
+            return validFoods;
+        }
+
+        // 중복 제거
+        validFoods = validFoods.stream().distinct().collect(Collectors.toList());
+        return validFoods;
+    }
+
+    // GPT Conversation 방 없애기 -> 일단 불필요
     /*public boolean deleteConversation(String conversationId) {
         RestTemplate restTemplate = new RestTemplate();
         String url = API_URL + conversationId;
@@ -312,7 +347,7 @@ public class MealInfoFoodAnalyzeService {
         }
     }*/
 
-    // 기존 자유추론
+    // 기존 자유추론 & 문자열 유사도 계산을 통한 음식 레코드 매핑
     /*public List<String> gptAnalyzeImage(String base64Image) {
         // 프롬프트 생성
         String prompt = String.format(
@@ -380,7 +415,6 @@ public class MealInfoFoodAnalyzeService {
         }
 
     }*/
-
     /*
     public List<String> representativeFoodRecordMapper(List<String> gptResponse) {
         List<String> representativeFoods = new ArrayList<>();
@@ -558,43 +592,6 @@ public class MealInfoFoodAnalyzeService {
             return "해당없음";
         }
     }*/
-    private List<String> parseAndValidateResult(String gptResponse, List<String> categories) {
-        List<String> validFoods = new ArrayList<>();
-        String trimmedResponse = gptResponse.trim();
-
-        // "해당없음"인 경우
-        if ("해당없음".equals(trimmedResponse)) {
-            return List.of("해당없음");
-        }
-
-        // 쉼표로 분리하여 개별 음식 이름 추출
-        List<String> detectedFoods = Arrays.stream(trimmedResponse.split(","))
-                .map(String::trim)
-                .filter(food -> !food.isEmpty())
-                .toList();
-
-        // 각 음식이 실제 목록에 있는지 검증 (목록이 notnull일때만)
-        if (!categories.isEmpty()) {
-            for (String detectedFood : detectedFoods) {
-                if (categories.contains(detectedFood)) {
-                    validFoods.add(detectedFood);
-                } else {
-                    // 유사한 음식 찾기
-                    String closestMatch = findClosestMatch(detectedFood, categories);
-                    if (!"해당하는 레코드 없음".equals(closestMatch) && !validFoods.contains(closestMatch)) {
-                        validFoods.add(closestMatch);
-                    }
-                }
-            }
-        } else {
-            validFoods.addAll(detectedFoods);
-        }
-
-        // 중복 제거
-        validFoods = validFoods.stream().distinct().collect(Collectors.toList());
-
-        return validFoods.isEmpty() ? List.of("해당없음") : validFoods;
-    }
     private String findClosestMatch(String aiResponse, List<String> categories) {
         String lowerResponse = aiResponse.toLowerCase();
 

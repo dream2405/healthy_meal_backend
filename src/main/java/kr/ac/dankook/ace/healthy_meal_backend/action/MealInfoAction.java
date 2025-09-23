@@ -40,8 +40,9 @@ public class MealInfoAction {
         MealInfo mealInfo = mealInfoFoodAnalyzeService.validateMealInfoId(mealInfoId, userId);
         String base64Image = storageService.convertImageToBase64(mealInfo.getImgPath());
         List<String> gptResponse = mealInfoFoodAnalyzeService.gptAnalyzeImage(base64Image);
-        //List<String> analyzedRepresentativeFoods = mealInfoFoodAnalyzeService.representativeFoodRecordMapper(gptResponse);
-        //mealInfoFoodAnalyzeService.foodRecordMapper(analyzedRepresentativeFoods, gptResponse);
+        /* 문자열 유사도 매핑로직 삭제
+        List<String> analyzedRepresentativeFoods = mealInfoFoodAnalyzeService.representativeFoodRecordMapper(gptResponse);
+        mealInfoFoodAnalyzeService.foodRecordMapper(analyzedRepresentativeFoods, gptResponse);*/
         return gptResponse;
 
     }
