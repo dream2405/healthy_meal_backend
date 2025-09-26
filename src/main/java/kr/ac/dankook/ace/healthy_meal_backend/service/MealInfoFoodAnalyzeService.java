@@ -114,6 +114,7 @@ public class MealInfoFoodAnalyzeService {
         }
 // === 전처리 끝 ===
         base64Image = smallB64;
+        String imageID = UUID.randomUUID().toString();
 
         int foodCount = 0;
         List<String> majorCategories = foodRepository.findDistinctMajorCategoryNative();
@@ -130,13 +131,13 @@ public class MealInfoFoodAnalyzeService {
         convID = createAnalyze();
 
         // 첫번째 gpt 분석 - 식단 이미지로 맞는 대분류 매칭 -> firstanalyzeImage()
-        majorCategoriesResult = firstanalyzeImage(base64Image, majorCategories, convID);
+        majorCategoriesResult = firstanalyzeImage(base64Image, majorCategories, convID, imageID);
         foodCount = majorCategoriesResult.size();
         for (String majorCategory : majorCategoriesResult) {
             representativeFoods.addAll(foodRepository.findDistinctRepresentativeFoodByMajorCategory(majorCategory));
         }
         // 두번째 gpt 분석 - 대표 음식 매칭 - analyzeImage()
-        representativeFoodsResult = analyzeImage(base64Image, representativeFoods, foodCount, convID);
+        representativeFoodsResult = analyzeImage(representativeFoods, foodCount, convID, imageID);
         for (String representativeFood : representativeFoodsResult) {
             foods.addAll(foodRepository.findDistinctNameByRepresentativeFood(representativeFood));
 
@@ -144,7 +145,7 @@ public class MealInfoFoodAnalyzeService {
             //foodResult.addAll(analyzeImage(foods));
         }
         // 마지막 gpt 분석 - 최종 음식 매칭 - analyzeImage()
-        foodResult = analyzeImage(base64Image, foods, foodCount, convID);
+        foodResult = analyzeImage(foods, foodCount, convID, imageID);
 
         // 최종 데이터베이스 검증 및 결과 반환
         for (String foodName : foodResult) {
@@ -196,7 +197,7 @@ public class MealInfoFoodAnalyzeService {
             throw new RuntimeException("conv 생성중 오류가 발생했습니다: " + e.getMessage(), e);
         }
     }
-    private List<String> firstanalyzeImage(String base64Image, List<String> categories, String convID) {
+    private List<String> firstanalyzeImage(String base64Image, List<String> categories, String convID, String imageID) {
         // 리스트를 문자열로 변환
         String categoriesString = String.join(", ", categories);
         System.out.println("GPT 선제시목록(" + categories.size() + ")개 : " + categoriesString);
@@ -207,6 +208,7 @@ public class MealInfoFoodAnalyzeService {
                         이미지를 보고 다음 카테고리 목록 중에서 이미지에 있는 모든 카테고리를 찾아주세요.
                         
                         음식 목록: %s
+                        이미지 식별자: %s
                         
                         규칙:
                         1. 반드시 제공된 카테고리 목록에서만 선택해주세요
@@ -216,8 +218,16 @@ public class MealInfoFoodAnalyzeService {
                         5. 만약 목록에 해당하는 음식이 없다면 '해당없음'이라고 답해주세요
                         6. 답변 예시: '김치찌개, 밥, 계란후라이' 또는 '피자' 또는 '해당없음'
                         7. 반찬이나 소스류를 제외하고 주요 요리 카테고리만 찾아주세요
-                        8. 추가 설명 없이 카테고리 이름만 작성해주세요""",
-                categoriesString
+                        8. 추가 설명 없이 카테고리 이름만 작성해주세요
+                        9. 이미지 식별자를 꼭 기억해주세요
+                        
+                        예외: 
+                        피자는 음식목록 중 빵 및 과자류에 해당됨
+                        
+                        
+                        """
+                ,
+                categoriesString, imageID
         );
 
         // 요청 body 구성
@@ -262,7 +272,7 @@ public class MealInfoFoodAnalyzeService {
             throw new RuntimeException("이미지 분석 중 오류가 발생했습니다: " + e.getMessage(), e);
         }
     }
-    private List<String> analyzeImage(String base64Image, List<String> categories, int foodCount, String convID) {
+    private List<String> analyzeImage(List<String> categories, int foodCount, String convID, String imageID) {
         // 리스트를 문자열로 변환
         String categoriesString = String.join(", ", categories);
         System.out.println("GPT 선제시목록(" + categories.size() + ")개 : " + categoriesString);
@@ -273,6 +283,7 @@ public class MealInfoFoodAnalyzeService {
                         이전에 제시했던 이미지에 있는 모든 음식 카테고리를 찾아주세요.
                         
                         음식 목록: %s
+                        이미지 식별자: %s
                         
                         규칙:
                         1. 반드시 제공된 카테고리 목록에서만 선택해주세요
@@ -282,8 +293,9 @@ public class MealInfoFoodAnalyzeService {
                         5. 만약 목록에 해당하는 음식이 없다면 '해당없음'이라고 답해주세요
                         6. 답변 예시: '김치찌개, 밥, 계란후라이' 또는 '피자' 또는 '해당없음''
                         7. 추가 설명 없이 카테고리 이름만 작성해주세요
-                        8. 이미지가 기억나지 않으면 '기억없음'이라고 답해주세요""",
-                categoriesString, foodCount
+                        8. 이미지가 기억나지 않으면 '기억없음'이라고 답해주세요
+                        9. 이미지 식별자를 꼭 기억해주세요""",
+                categoriesString, imageID, foodCount
         );
 
         // 요청 body 구성
