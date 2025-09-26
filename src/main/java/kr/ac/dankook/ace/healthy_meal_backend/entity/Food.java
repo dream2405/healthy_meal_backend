@@ -1,10 +1,7 @@
 package kr.ac.dankook.ace.healthy_meal_backend.entity;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -12,6 +9,7 @@ import java.util.List;
 
 @Entity
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED) // Lombok: JPA를 위한 기본 생성자 자동 생성 (protected 접근 수준)
 @ToString(exclude = {"mealInfoFoodLinks", "userFoodLinks"})
 public class Food {

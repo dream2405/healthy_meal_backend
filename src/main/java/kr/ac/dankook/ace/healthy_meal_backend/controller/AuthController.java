@@ -1,10 +1,10 @@
 package kr.ac.dankook.ace.healthy_meal_backend.controller;
 
 import kr.ac.dankook.ace.healthy_meal_backend.exception.DuplicateUserIdException;
+import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -26,6 +26,7 @@ import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.UserRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.security.JwtTokenProvider;
 
+@RequiredArgsConstructor
 @Tag(name = "인증")
 @RestController
 public class AuthController {
@@ -36,15 +37,6 @@ public class AuthController {
     private final UserRepository userRepository;
     private final ModelMapper modelMapper;
     private final PasswordEncoder passwordEncoder;
-
-    @Autowired
-    public AuthController(AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider, UserRepository userRepository, ModelMapper modelMapper, PasswordEncoder passwordEncoder) {
-        this.authenticationManager = authenticationManager;
-        this.jwtTokenProvider = jwtTokenProvider;
-        this.userRepository = userRepository;
-        this.modelMapper = modelMapper;
-        this.passwordEncoder = passwordEncoder;
-    }
 
     @PostMapping("/signup")
     @Operation(summary = "주어진 정보로 회원가입")

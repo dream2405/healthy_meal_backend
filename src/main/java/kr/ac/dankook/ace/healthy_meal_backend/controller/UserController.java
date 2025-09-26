@@ -16,6 +16,7 @@ import kr.ac.dankook.ace.healthy_meal_backend.repository.MealInfoRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.UserRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.security.CustomUserDetails;
 import kr.ac.dankook.ace.healthy_meal_backend.service.NutrientIntakeService;
+import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,9 +33,11 @@ import java.time.LocalDate;
 import java.util.*;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/users")
 @Tag(name = "유저")
 public class UserController {
+
     private final UserRepository userRepository;
     private final MealInfoRepository mealInfoRepository;
     private final DailyIntakeRepository dailyIntakeRepository;
@@ -44,29 +47,13 @@ public class UserController {
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
-    @Autowired
-    public UserController(
-            UserRepository userRepository,
-            MealInfoRepository mealInfoRepository,
-            DailyIntakeRepository dailyIntakeRepository,
-            ModelMapper modelMapper,
-            MealInfoAction mealInfoAction,
-            NutrientIntakeService nutrientIntakeService) {
-        this.userRepository = userRepository;
-        this.mealInfoRepository = mealInfoRepository;
-        this.dailyIntakeRepository = dailyIntakeRepository;
-        this.modelMapper = modelMapper;
-        this.mealInfoAction = mealInfoAction;
-        this.nutrientIntakeService = nutrientIntakeService;
-    }
-
     @GetMapping("/{userId}")
     @Operation(summary = "주어진 ID를 가진 특정 유저 가져오기", security = @SecurityRequirement(name = "BearerAuth"))
     public ResponseEntity<UserGetDTO> getUser(@PathVariable String userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다: " + userId));
         UserGetDTO userGetDTO = modelMapper.map(user, UserGetDTO.class);
-        return ResponseEntity.status(HttpStatus.OK).body(userGetDTO);
+        return ResponseEntity.ok().body(userGetDTO);
     }
 
     @DeleteMapping("/{userId}")
@@ -76,7 +63,7 @@ public class UserController {
             throw new NoSuchElementException("사용자를 찾을 수 없습니다: " + userId);
         }
         userRepository.deleteById(userId);
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{userId}/meal-info")
@@ -92,7 +79,7 @@ public class UserController {
         List<MealInfo> mealInfos = mealInfoRepository.findByUserIdAndCreatedDate(userId, date);
         List<MealInfoPostDTO> mealInfoPostDTOs = mealInfos.stream()
                 .map(mealInfo -> modelMapper.map(mealInfo, MealInfoPostDTO.class)).toList();
-        return ResponseEntity.status(HttpStatus.OK).body(mealInfoPostDTOs);
+        return ResponseEntity.ok().body(mealInfoPostDTOs);
     }
 
     @PostMapping(value = "/{userId}/meal-info", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -150,7 +137,7 @@ public class UserController {
                 .findFirst()
                 .orElseThrow(() -> new NoSuchElementException("식단 정보를 찾을 수 없습니다: " + mealInfoId));
 
-        return ResponseEntity.status(HttpStatus.OK).body(modelMapper.map(mealInfo, MealInfoPostDTO.class));
+        return ResponseEntity.ok(modelMapper.map(mealInfo, MealInfoPostDTO.class));
     }
 
     @DeleteMapping("/{userId}/meal-info/{mealInfoId}")
@@ -176,7 +163,8 @@ public class UserController {
         List<DailyIntake> dailyIntakes = nutrientIntakeService.getDailyIntakes(userId);
         List<DailyIntakeDTO> dailyIntakeDTOs = dailyIntakes.stream()
                 .map(dailyIntake -> modelMapper.map(dailyIntake, DailyIntakeDTO.class)).toList();
-        return ResponseEntity.status(HttpStatus.OK).body(dailyIntakeDTOs);
+
+        return ResponseEntity.ok(dailyIntakeDTOs);
     }
 
     @GetMapping("/{userId}/daily-intake/{dailyIntakeId}")
@@ -186,7 +174,7 @@ public class UserController {
             @PathVariable Integer dailyIntakeId) {
         DailyIntake dailyIntake = dailyIntakeRepository.findById(dailyIntakeId)
                 .orElseThrow(() -> new NoSuchElementException("유저 " + userId + "의 일별섭취기록을 찾을 수 없습니다: " + dailyIntakeId));
-        return ResponseEntity.status(HttpStatus.OK).body(modelMapper.map(dailyIntake, DailyIntakeDTO.class));
+        return ResponseEntity.ok().body(modelMapper.map(dailyIntake, DailyIntakeDTO.class));
     }
 
     @DeleteMapping("/{userId}/daily-intake/{dailyIntakeId}")
@@ -196,7 +184,7 @@ public class UserController {
             throw new NoSuchElementException("유저 " + userId + "의 일별섭취기록을 찾을 수 없습니다: " + dailyIntakeId);
         }
         dailyIntakeRepository.deleteById(dailyIntakeId);
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+        return ResponseEntity.noContent().build();
     }
 
 }
