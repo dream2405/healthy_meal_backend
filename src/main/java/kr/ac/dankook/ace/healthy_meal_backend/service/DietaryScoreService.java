@@ -1,54 +1,25 @@
 package kr.ac.dankook.ace.healthy_meal_backend.service;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import kr.ac.dankook.ace.healthy_meal_backend.dto.DailyIntakeDTO;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.DailyIntake;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.DietCriterion; // 기존 DietCriterion (연령/성별별 기준)
-import kr.ac.dankook.ace.healthy_meal_backend.entity.DietScoringCriterion;
-import kr.ac.dankook.ace.healthy_meal_backend.entity.NutriWeight;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
-import kr.ac.dankook.ace.healthy_meal_backend.model.enums.NutrientType;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.DailyIntakeRepository;
-import kr.ac.dankook.ace.healthy_meal_backend.repository.DietCriterionRepository; // 기존 DietCriterionRepository 주입
-import kr.ac.dankook.ace.healthy_meal_backend.repository.DietScoringCriterionRepository;
-import kr.ac.dankook.ace.healthy_meal_backend.repository.NutriWeightRepository;
-import kr.ac.dankook.ace.healthy_meal_backend.repository.UserRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+// 기존 DietCriterionRepository 주입
+import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import java.time.LocalDate;
 import java.time.Period;
-import java.util.EnumMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
-@Component
+@Service
+@RequiredArgsConstructor
 public class DietaryScoreService {
-
-    private static final Logger logger = LoggerFactory.getLogger(DietaryScoreService.class);
 
     private final DailyIntakeRepository dailyIntakeRepository;
     private final UserService userService;
-
-    public DietaryScoreService(
-                               DailyIntakeRepository dailyIntakeRepository,
-                               UserService userService) { // 생성자에 추가
-        this.dailyIntakeRepository = dailyIntakeRepository;
-        this.userService = userService;
-    }
 
     @Scheduled(cron = "0 0 0 * * *")
     @Transactional

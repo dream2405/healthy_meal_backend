@@ -8,7 +8,6 @@ import kr.ac.dankook.ace.healthy_meal_backend.service.UserService;
 import kr.ac.dankook.ace.healthy_meal_backend.dto.DietCriterionWeightDTO;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.DietCriterion;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

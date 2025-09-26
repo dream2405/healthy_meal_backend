@@ -82,7 +82,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleGenericException(Exception ex) {
         log.error("서버 오류 발생: ", ex);
         Map<String, String> error = new HashMap<>();
-        error.put("error", "서버 오류가 발생했습니다.");
+        error.put("error", ex.getLocalizedMessage());
         return ResponseEntity.internalServerError().body(error);
     }
 
