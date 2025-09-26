@@ -1,11 +1,14 @@
 package kr.ac.dankook.ace.healthy_meal_backend.model.enums;
 
+import lombok.Getter;
+
 import java.util.List;
 import java.util.Optional;
 
 /**
  * 각 영양소의 이름, 단위, 기본 권장량, 점수 계산 방식(NutrientScoringType), 기본 중요도(baseImportance)를 정의하는 Enum 클래스입니다.
  */
+@Getter
 public enum NutrientType {
     CARBOHYDRATE("탄수화물", "g", 130.0, NutrientScoringType.TARGET_RANGE, 1.0),
     PROTEIN("단백질", "g", 65.0, NutrientScoringType.ENOUGH_IS_GOOD, 1.0),
@@ -29,12 +32,6 @@ public enum NutrientType {
         this.scoringType = scoringType;
         this.baseImportance = baseImportance;
     }
-
-    public String getKoreanName() { return koreanName; }
-    public String getUnit() { return unit; }
-    public double getDefaultRecommendedAmount() { return defaultRecommendedAmount; }
-    public NutrientScoringType getScoringType() { return scoringType; }
-    public double getBaseImportance() { return baseImportance; }
 
     /**
      * 한글 영양소 이름으로 NutrientType Enum 상수를 찾습니다.
