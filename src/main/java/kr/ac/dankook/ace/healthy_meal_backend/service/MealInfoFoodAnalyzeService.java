@@ -546,11 +546,11 @@ public class MealInfoFoodAnalyzeService {
     }
     */
 
-    public MealInfo completeMealInfo(MealInfo mealInfo, Float amount, String diary) {
+/*    public MealInfo completeMealInfo(MealInfo mealInfo, Float amount, String diary) {
         mealInfo.setIntakeAmount(amount);
         mealInfo.setDiary(diary);
         return mealInfoRepository.save(mealInfo);
-    }
+    }*/
 
     public MealInfo validateMealInfoId(Long mealInfoId, String userId) {
         Optional<MealInfo> mealInfo = mealInfoRepository.findById(mealInfoId);

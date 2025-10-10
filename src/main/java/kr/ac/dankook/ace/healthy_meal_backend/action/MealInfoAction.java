@@ -48,7 +48,7 @@ public class MealInfoAction {
 
     }
 
-    public MealInfo completeMealInfo(User user, Long mealInfoId, Float amount, String diary, List<String> confirmedFoods) {
+/*    public MealInfo completeMealInfo(User user, Long mealInfoId, Float amount, String diary, List<String> confirmedFoods) {
         MealInfo mealInfo = mealInfoFoodAnalyzeService.validateMealInfoId(mealInfoId, user.getId());
         MealInfo updatedMealInfo = mealInfoFoodAnalyzeService.completeMealInfo(mealInfo, amount, diary);
         for (String food : confirmedFoods) {
@@ -56,7 +56,7 @@ public class MealInfoAction {
         }
         nutrientIntakeService.applyInsertDailyIntake(updatedMealInfo, user, updatedMealInfo.getCreatedAt().toLocalDate());
         return updatedMealInfo;
-    }
+    }*/
 
     public void deleteMealInfo(Long mealInfoId, User user) {
         MealInfo mealInfo = mealInfoFoodAnalyzeService.validateMealInfoId(mealInfoId, user.getId());

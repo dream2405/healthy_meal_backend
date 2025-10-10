@@ -16,6 +16,8 @@ public interface FoodRepository extends CrudRepository<Food, Long> {
 
     Optional<Food> findFirstByName(String name);
 
+    boolean existsFoodByName(String name);
+
     @Query("SELECT f FROM Food f WHERE " +
             "(:name IS NULL OR f.name=:name) AND " +
             "(:representativeFood IS NULL OR f.representativeFood=:representativeFood) AND " +
