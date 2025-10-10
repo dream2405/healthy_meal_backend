@@ -25,9 +25,6 @@ public class MealInfo {
     @Column(name = "id", nullable = false)
     private Long id;
 
-    @Column(name = "intake_amount")
-    private Float intakeAmount;
-
     @Column(name = "img_path")
     private String imgPath;
 

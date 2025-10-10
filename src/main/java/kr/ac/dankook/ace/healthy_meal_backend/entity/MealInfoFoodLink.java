@@ -26,4 +26,7 @@ public class MealInfoFoodLink {
     @JoinColumn(name = "food_id", nullable = false)
     private Food food;
 
+    @Column(name = "intake_amount")
+    private Float intakeAmount;
+
 }

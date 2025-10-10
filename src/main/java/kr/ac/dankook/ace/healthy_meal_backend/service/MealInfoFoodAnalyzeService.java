@@ -6,7 +6,6 @@ import kr.ac.dankook.ace.healthy_meal_backend.entity.MealInfo;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.FoodRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.MealInfoRepository;
-import kr.ac.dankook.ace.healthy_meal_backend.service.ImagePreprocessorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,8 +27,6 @@ import java.util.stream.Collectors;
 public class MealInfoFoodAnalyzeService {
     @Value("${openai.api.key}")
     private String openAiApiKey;
-    private static final String OPENAI_API_URL = "https://api.openai.com/v1/responses";
-    private static final String OPENAI_CONV = "https://api.oepnai.com/v1/conversations";
     private static final String MODEL = "gpt-4o";
     //private static final float COSINETHRESHOLD = 0.35f;
     private final FoodRepository foodRepository;
