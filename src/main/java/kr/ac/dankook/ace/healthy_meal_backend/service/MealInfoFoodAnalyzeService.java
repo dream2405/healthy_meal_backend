@@ -30,8 +30,8 @@ public class MealInfoFoodAnalyzeService {
     private String openAiApiKey;
     private static final String OPENAI_API_URL = "https://api.openai.com/v1/responses";
     private static final String OPENAI_CONV = "https://api.oepnai.com/v1/conversations";
-    private static final String MODEL = "gpt-4o";
-    //private static final float COSINETHRESHOLD = 0.35f;
+    private static final String MODEL4 = "gpt-4o";
+    private static final String MODEL5 = "gpt-5";
     private final FoodRepository foodRepository;
     private final MealInfoRepository mealInfoRepository;
     private final RestClient convClient;
@@ -129,7 +129,7 @@ public class MealInfoFoodAnalyzeService {
         convID = createAnalyze();
 
         // 첫번째 gpt 분석 - 식단 이미지로 맞는 대분류 매칭 -> firstanalyzeImage()
-        majorCategoriesResult = firstanalyzeImage(base64Image, majorCategories, convID, imageID);
+        majorCategoriesResult = firstanalyzeImage(base64Image, majorCategories, convID);
         foodCount = majorCategoriesResult.size();
         if (majorCategoriesResult.isEmpty()) {
             System.out.println("대분류 분석실패");
@@ -138,20 +138,25 @@ public class MealInfoFoodAnalyzeService {
         for (String majorCategory : majorCategoriesResult) {
             representativeFoods.addAll(foodRepository.findDistinctRepresentativeFoodByMajorCategory(majorCategory));
         }
+        long mid1 = System.currentTimeMillis();
+        logger.info("GPT 대분류식별 소요시간 : {} s", (mid1 - start)/1000);
+
         // 두번째 gpt 분석 - 대표 음식 매칭 - analyzeImage()
-        representativeFoodsResult = analyzeImage(representativeFoods, foodCount, convID, imageID);
+        representativeFoodsResult = analyzeImage(representativeFoods, foodCount, convID);
         if (representativeFoodsResult.isEmpty()) {
             System.out.println("대표식품명 분석실패");
             return foodResult;
         }
         for (String representativeFood : representativeFoodsResult) {
             foods.addAll(foodRepository.findDistinctNameByRepresentativeFood(representativeFood));
-
             // 마지막 gpt 분석 - 최종 음식 매칭 - analyzeImage()
             //foodResult.addAll(analyzeImage(foods));
         }
+        long mid2 = System.currentTimeMillis();
+        logger.info("GPT 대표식품식별 소요시간 : {} s", (mid2 - start)/1000);
+
         // 마지막 gpt 분석 - 최종 음식 매칭 - analyzeImage()
-        foodResult = analyzeImage(foods, foodCount, convID, imageID);
+        foodResult = finalanalyzeImage(foods, foodCount, convID);
 
         // 최종 데이터베이스 검증 및 결과 반환 -> 이미 검증됨
         /*for (String foodName : foodResult) {
@@ -196,7 +201,7 @@ public class MealInfoFoodAnalyzeService {
             throw new RuntimeException("conv 생성중 오류가 발생했습니다: " + e.getMessage(), e);
         }
     }
-    private List<String> firstanalyzeImage(String base64Image, List<String> categories, String convID, String imageID) {
+    private List<String> firstanalyzeImage(String base64Image, List<String> categories, String convID) {
         // 리스트를 문자열로 변환
         String categoriesString = String.join(", ", categories);
         System.out.println("GPT 선제시목록(" + categories.size() + ")개 : " + categoriesString);
@@ -207,30 +212,26 @@ public class MealInfoFoodAnalyzeService {
                         이미지를 보고 다음 음식 목록 중에서 이미지에 있는 모든 음식 종류를 찾아주세요.
                         
                         음식 목록: %s
-                        이미지 식별자: %s
                         
                         규칙:
                         1. 반드시 제공된 음식 목록에서만 선택
                         2. 반찬이나 소스류를 제외하고 주요 요리 카테고리만 작성
                         3. 여러 음식이면 쉼표(,)로 구분
-                        4. 목록에 해당하지 않으면 '해당없음'
-                        5. 이미지가 기억나지 않으면 '기억없음'
-                        6. 답변은 카테고리 이름만, 추가 설명 없음
-                        7. 이미지 식별자를 꼭 기억
-                        8. 답변 예시: '김치찌개, 밥, 계란후라이' 또는 '피자' 또는 '해당없음''
+                        4. 답변은 카테고리 이름만, 추가 설명 없음
+                        5. 답변 예시: '김치찌개, 밥, 계란후라이' 또는 '피자'
+                        6. 이미지 식별 실패시 그 이유를 작성
                         
                         예외:
-                        피자는 음식목록 중 빵 및 과자류에 해당됨
                         
                         
                         """
                 ,
-                categoriesString, imageID
+                categoriesString
         );
 
         // 요청 body 구성
         Map<String, Object> requestBody = Map.of(
-                    "model", MODEL,
+                    "model", MODEL4,
                     "conversation", convID,
                     "input", List.of(
                             Map.of(
@@ -270,7 +271,7 @@ public class MealInfoFoodAnalyzeService {
             throw new RuntimeException("이미지 분석 중 오류가 발생했습니다: " + e.getMessage(), e);
         }
     }
-    private List<String> analyzeImage(List<String> categories, int foodCount, String convID, String imageID) {
+    private List<String> analyzeImage(List<String> categories, int foodCount, String convID) {
         // 리스트를 문자열로 변환
         String categoriesString = String.join(", ", categories);
         System.out.println("GPT 선제시목록(" + categories.size() + ")개 : " + categoriesString);
@@ -281,25 +282,88 @@ public class MealInfoFoodAnalyzeService {
                         이전에 제시했던 이미지에 있는 모든 음식 목록을 찾아주세요.
                         
                         음식 목록: %s
-                        이미지 식별자: %s
                         
                         규칙:
                         1. 반드시 제공된 음식 목록에서만 선택
                         2. 이미지에서 식별된 %d개의 음식 당 가장 적합한 카테고리를 중복없이 작성
                         3. 여러 음식이면 쉼표(,)로 구분
-                        4. 목록에 해당하지 않으면 '해당없음'
-                        5. 이미지가 기억나지 않으면 '기억없음'
-                        6. 답변은 카테고리 이름만, 추가 설명 없음
-                        7. 이미지 식별자를 꼭 기억
-                        8. 답변 예시: '김치찌개, 밥, 계란후라이' 또는 '피자' 또는 '해당없음''
+                        4. 답변은 카테고리 이름만, 추가 설명 없음
+                        5. 답변 예시: '김치찌개, 밥, 계란후라이' 또는 '피자'
+                        6. 이미지 식별 실패시 그 이유를 작성
                         
                         """,
-                categoriesString, imageID, foodCount
+                categoriesString, foodCount
         );
 
         // 요청 body 구성
         Map<String, Object> requestBody = Map.of(
-                "model", MODEL,
+                "model", MODEL5,
+                "conversation", convID,
+                "input", List.of(
+                        Map.of(
+                                "role", "user",
+                                "content", List.of(
+                                        Map.of(
+                                                "type", "input_text",
+                                                "text", prompt
+                                        )
+                                        /*Map.of(
+                                                "type", "input_image",
+                                                "image_url", "data:image/jpeg;base64," + base64Image
+                                                //"image_url", "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8N3x8cGl6emF8ZW58MHx8MHx8fDA%3D"
+                                        )*/
+                                )
+                        )
+                )
+                //"max_output_tokens", 1000  // 여러 음식 이름을 위해 토큰 증가
+        );
+
+        try {
+            // OpenAI API 호출
+            Map<String, Object> response = respClient.post()
+                    .header("Authorization", "Bearer " + openAiApiKey)
+                    .body(requestBody)
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<Map<String, Object>>() {});
+
+            // 응답에서 텍스트 추출
+            String result = extractContentFromResponse(response);
+            System.out.println("GPT 응답결과 : " + result);
+
+            // 결과를 리스트로 변환하고 검증 -> 검증되지 못한 결과는 empty list<string>로 반환됨
+            return parseAndValidateResult(result, categories);
+
+        } catch (Exception e) {
+            throw new RuntimeException("이미지 분석 중 오류가 발생했습니다: " + e.getMessage(), e);
+        }
+    }
+    private List<String> finalanalyzeImage(List<String> categories, int foodCount, String convID) {
+        // 리스트를 문자열로 변환
+        String categoriesString = String.join(", ", categories);
+        System.out.println("GPT 선제시목록(" + categories.size() + ")개 : " + categoriesString);
+
+        // 프롬프트 생성
+        String prompt = String.format(
+                """
+                        이전에 제시했던 이미지에 있는 모든 음식 목록을 찾아주세요.
+                        
+                        음식 목록: %s
+                        
+                        규칙:
+                        1. 반드시 제공된 음식 목록에서만 선택
+                        2. 이미지에서 식별된 %d개의 음식 당 가장 적합한 카테고리를 중복없이 작성
+                        3. 여러 음식이면 쉼표(,)로 구분
+                        4. 답변은 카테고리 이름만, 추가 설명 없음
+                        5. 답변 예시: '김치찌개, 밥, 계란후라이' 또는 '피자'
+                        6. 이미지 식별 실패시 그 이유를 작성
+                        
+                        """,
+                categoriesString, foodCount
+        );
+
+        // 요청 body 구성
+        Map<String, Object> requestBody = Map.of(
+                "model", MODEL4,
                 "conversation", convID,
                 "input", List.of(
                         Map.of(
