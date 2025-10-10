@@ -8,7 +8,6 @@ import java.util.List;
 @Data
 public class MealInfoPostDTO {
     private Long id;
-    private Float intakeAmount;
     private String imgPath;
     private String diary;
     private LocalDateTime createdAt;

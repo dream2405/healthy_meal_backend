@@ -7,25 +7,25 @@ import jakarta.transaction.Transactional;
 import kr.ac.dankook.ace.healthy_meal_backend.action.MealInfoAction;
 import kr.ac.dankook.ace.healthy_meal_backend.dto.DailyIntakeDTO;
 import kr.ac.dankook.ace.healthy_meal_backend.dto.MealInfoPostDTO;
+import kr.ac.dankook.ace.healthy_meal_backend.dto.UpdateMealInfoRequestDTO;
 import kr.ac.dankook.ace.healthy_meal_backend.dto.UserGetDTO;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.DailyIntake;
+import kr.ac.dankook.ace.healthy_meal_backend.entity.Food;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.MealInfo;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.DailyIntakeRepository;
+import kr.ac.dankook.ace.healthy_meal_backend.repository.FoodRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.MealInfoRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.UserRepository;
-import kr.ac.dankook.ace.healthy_meal_backend.security.CustomUserDetails;
 import kr.ac.dankook.ace.healthy_meal_backend.service.NutrientIntakeService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -41,6 +41,7 @@ public class UserController {
     private final UserRepository userRepository;
     private final MealInfoRepository mealInfoRepository;
     private final DailyIntakeRepository dailyIntakeRepository;
+    private final FoodRepository foodRepository;
     private final ModelMapper modelMapper;
     private final MealInfoAction mealInfoAction;
     private final NutrientIntakeService nutrientIntakeService;
@@ -105,24 +106,39 @@ public class UserController {
     @Transactional
     public ResponseEntity<List<String>> analyzeMealInfo(@PathVariable String userId,
                                                         @PathVariable Long mealInfoId) {
-
         List<String> foodResult = mealInfoAction.analyzeMealInfo(mealInfoId, userId);
         return ResponseEntity.status(HttpStatus.CREATED).body(foodResult);
     }
 
     @PatchMapping("/{userId}/meal-info/{mealInfoId}")
-    @Operation(summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보 최종기록 / 수정", security = @SecurityRequirement(name = "BearerAuth"))
+    @Operation(summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보 기록/수정", security = @SecurityRequirement(name = "BearerAuth"))
     @Transactional
     public ResponseEntity<MealInfoPostDTO> updateMealInfo(
             @PathVariable String userId, @PathVariable Long mealInfoId,
-            @RequestParam(required = false) Float amount, @RequestParam(required = false) String diary,
-            @AuthenticationPrincipal CustomUserDetails userDetails, @RequestBody List<String> confirmedFoods) {
-        if (amount == null && diary == null) {
-            throw new IllegalArgumentException("amount 또는 diary 중 하나는 필수입니다.");
+            @RequestBody UpdateMealInfoRequestDTO updateMealInfoRequestDTO) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다: " + userId));
+        MealInfo mealInfo = user.getMealInfos().stream()
+                .filter(mf -> Objects.equals(mf.getId(), mealInfoId))
+                .findFirst()
+                .orElseThrow(() -> new NoSuchElementException("식단 정보를 찾을 수 없습니다: " + mealInfoId));
+        if(updateMealInfoRequestDTO.getIntakeAmounts().size() != updateMealInfoRequestDTO.getConfirmedFoods().size()) {
+            throw new IllegalArgumentException("섭취량과 음식 리스트 길이가 맞지 않음");
         }
 
-        MealInfo updatedMealInfo = mealInfoAction.completeMealInfo(userDetails.getUser(), mealInfoId, amount, diary, confirmedFoods);
-        MealInfoPostDTO mealInfoPostDTO = modelMapper.map(updatedMealInfo, MealInfoPostDTO.class);
+        mealInfo.getFoods().clear();
+
+        for(var i=0; i < updateMealInfoRequestDTO.getConfirmedFoods().size(); i++) {
+            String foodName = updateMealInfoRequestDTO.getConfirmedFoods().get(i);
+            Food food = foodRepository.findFirstByName(foodName)
+                    .orElseThrow(() -> new IllegalArgumentException(foodName + " 에 해당하는 음식이 없음"));
+            mealInfo.addFoodLink(food, updateMealInfoRequestDTO.getIntakeAmounts().get(i));
+        }
+
+        mealInfo.setDiary(updateMealInfoRequestDTO.getDiary());
+
+        MealInfoPostDTO mealInfoPostDTO = modelMapper.map(mealInfo, MealInfoPostDTO.class);
+
         return ResponseEntity.ok(mealInfoPostDTO);
     }
 
@@ -136,7 +152,6 @@ public class UserController {
                 .filter(mf -> Objects.equals(mf.getId(), mealInfoId))
                 .findFirst()
                 .orElseThrow(() -> new NoSuchElementException("식단 정보를 찾을 수 없습니다: " + mealInfoId));
-
         return ResponseEntity.ok(modelMapper.map(mealInfo, MealInfoPostDTO.class));
     }
 

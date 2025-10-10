@@ -18,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @Transactional
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 public class FoodRelationshipTest {
+
     @Autowired
     private TestEntityManager entityManager;
 
@@ -63,4 +64,44 @@ public class FoodRelationshipTest {
         assertEquals(1, mealInfos.size());
         assertEquals(retrievedMealInfo.getId(), mealInfos.get(0).getId());
     }
+
+    @Test
+    void testMealInfoFoodRelationship() {
+        // 유저 생성
+        User user1 = new User();
+        user1.setId("user1");
+        user1.setGender('m');
+        user1.setHashedPassword("hashedPassword");
+
+        entityManager.persistAndFlush(user1);
+
+        // MealInfo 엔티티 생성 및 User와 연결
+        MealInfo mealInfo1 = new MealInfo();
+        MealInfo mealInfo2 = new MealInfo();
+        mealInfo1.setUser(user1);
+        mealInfo2.setUser(user1);
+
+        entityManager.persist(mealInfo1);
+        entityManager.persist(mealInfo2);
+        entityManager.flush();
+
+        Food[] foods = {
+                entityManager.find(Food.class, 1L),
+                entityManager.find(Food.class, 2L),
+                entityManager.find(Food.class, 3L)
+        };
+        for (Food food : foods) {
+            mealInfo1.addFoodLink(food, 1f);
+            mealInfo2.addFoodLink(food, 1f);
+        }
+
+        entityManager.flush();
+
+        assertEquals(3, mealInfo1.getFoods().size());
+        assertEquals(3, mealInfo2.getFoods().size());
+
+        assertTrue(foods[0].getMealInfos().stream().anyMatch(mealInfo -> mealInfo.getId().equals(mealInfo1.getId())));
+        assertTrue(foods[1].getMealInfos().stream().anyMatch(mealInfo -> mealInfo.getId().equals(mealInfo2.getId())));
+    }
+
 }

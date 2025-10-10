@@ -6,7 +6,6 @@ import kr.ac.dankook.ace.healthy_meal_backend.entity.MealInfo;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.FoodRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.MealInfoRepository;
-import kr.ac.dankook.ace.healthy_meal_backend.service.ImagePreprocessorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -626,11 +625,11 @@ public class MealInfoFoodAnalyzeService {
     }
     */
 
-    public MealInfo completeMealInfo(MealInfo mealInfo, Float amount, String diary) {
+/*    public MealInfo completeMealInfo(MealInfo mealInfo, Float amount, String diary) {
         mealInfo.setIntakeAmount(amount);
         mealInfo.setDiary(diary);
         return mealInfoRepository.save(mealInfo);
-    }
+    }*/
 
     public MealInfo validateMealInfoId(Long mealInfoId, String userId) {
         Optional<MealInfo> mealInfo = mealInfoRepository.findById(mealInfoId);

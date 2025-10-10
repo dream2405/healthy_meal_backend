@@ -25,9 +25,6 @@ public class MealInfo {
     @Column(name = "id", nullable = false)
     private Long id;
 
-    @Column(name = "intake_amount")
-    private Float intakeAmount;
-
     @Column(name = "img_path")
     private String imgPath;
 
@@ -53,7 +50,7 @@ public class MealInfo {
     private List<MealInfoFoodLink> mealInfoFoodLinks = new ArrayList<>();
 
     // 연관관계 편의 메서드
-    public void addFood(Food food) {
+    public void addFoodLink(Food food, Float intakeAmount) {
         // 이미 연결된 경우 중복 추가 방지
         for (MealInfoFoodLink link : mealInfoFoodLinks) {
             if (link.getFood().getId().equals(food.getId())) {
@@ -69,6 +66,7 @@ public class MealInfo {
         link.setId(linkId);
         link.setMealInfo(this);
         link.setFood(food);
+        link.setIntakeAmount(intakeAmount);
 
         this.mealInfoFoodLinks.add(link);
         food.getMealInfoFoodLinks().add(link);
@@ -96,4 +94,5 @@ public class MealInfo {
         }
         return foods;
     }
+
 }
