@@ -114,6 +114,7 @@ public class MealInfoFoodAnalyzeService {
         }
 // === 전처리 끝 ===
         base64Image = smallB64;
+        String imageID = UUID.randomUUID().toString();
 
         int foodCount = 0;
         List<String> majorCategories = foodRepository.findDistinctMajorCategoryNative();
@@ -121,22 +122,28 @@ public class MealInfoFoodAnalyzeService {
         List<String> representativeFoods = new ArrayList<>();
         List<String> representativeFoodsResult;
         List<String> foods = new ArrayList<>();
-        List<String> foodResult;
-        List<Food> foodList = new ArrayList<>();
-        List<String> result = new ArrayList<>();
+        List<String> foodResult = new ArrayList<>();
 
         // Conversation(대화방) 생성
         String convID;
         convID = createAnalyze();
 
         // 첫번째 gpt 분석 - 식단 이미지로 맞는 대분류 매칭 -> firstanalyzeImage()
-        majorCategoriesResult = firstanalyzeImage(base64Image, majorCategories, convID);
+        majorCategoriesResult = firstanalyzeImage(base64Image, majorCategories, convID, imageID);
         foodCount = majorCategoriesResult.size();
+        if (majorCategoriesResult.isEmpty()) {
+            System.out.println("대분류 분석실패");
+            return foodResult;
+        }
         for (String majorCategory : majorCategoriesResult) {
             representativeFoods.addAll(foodRepository.findDistinctRepresentativeFoodByMajorCategory(majorCategory));
         }
         // 두번째 gpt 분석 - 대표 음식 매칭 - analyzeImage()
-        representativeFoodsResult = analyzeImage(base64Image, representativeFoods, foodCount, convID);
+        representativeFoodsResult = analyzeImage(representativeFoods, foodCount, convID, imageID);
+        if (representativeFoodsResult.isEmpty()) {
+            System.out.println("대표식품명 분석실패");
+            return foodResult;
+        }
         for (String representativeFood : representativeFoodsResult) {
             foods.addAll(foodRepository.findDistinctNameByRepresentativeFood(representativeFood));
 
@@ -144,24 +151,17 @@ public class MealInfoFoodAnalyzeService {
             //foodResult.addAll(analyzeImage(foods));
         }
         // 마지막 gpt 분석 - 최종 음식 매칭 - analyzeImage()
-        foodResult = analyzeImage(base64Image, foods, foodCount, convID);
+        foodResult = analyzeImage(foods, foodCount, convID, imageID);
 
-        // 최종 데이터베이스 검증 및 결과 반환
-        for (String foodName : foodResult) {
+        // 최종 데이터베이스 검증 및 결과 반환 -> 이미 검증됨
+        /*for (String foodName : foodResult) {
             foodList.addAll(foodRepository.findAllByName(foodName));
-        }
+        }*/
 
         long end = System.currentTimeMillis();
         logger.info("GPT 사진분석 소요시간 : {} s", (end - start)/1000);
 
-        if (foodList.isEmpty()) {
-            return result;
-        } else {
-            result = foodList.stream()
-                    .map(Food::getName)
-                    .collect(Collectors.toList());
-            return result;
-        }
+        return foodResult;
     }
     private String createAnalyze() {
         // 요청 body 구성
@@ -196,7 +196,7 @@ public class MealInfoFoodAnalyzeService {
             throw new RuntimeException("conv 생성중 오류가 발생했습니다: " + e.getMessage(), e);
         }
     }
-    private List<String> firstanalyzeImage(String base64Image, List<String> categories, String convID) {
+    private List<String> firstanalyzeImage(String base64Image, List<String> categories, String convID, String imageID) {
         // 리스트를 문자열로 변환
         String categoriesString = String.join(", ", categories);
         System.out.println("GPT 선제시목록(" + categories.size() + ")개 : " + categoriesString);
@@ -204,20 +204,28 @@ public class MealInfoFoodAnalyzeService {
         // 프롬프트 생성
         String prompt = String.format(
                 """
-                        이미지를 보고 다음 카테고리 목록 중에서 이미지에 있는 모든 카테고리를 찾아주세요.
+                        이미지를 보고 다음 음식 목록 중에서 이미지에 있는 모든 음식 종류를 찾아주세요.
                         
                         음식 목록: %s
+                        이미지 식별자: %s
                         
                         규칙:
-                        1. 반드시 제공된 카테고리 목록에서만 선택해주세요
-                        2. 이미지에 보이는 각각의 음식종류 개수만큼 가장 적합한 카테고리를 찾아주세요
-                        3. 음식이 여러 개가 있다면 쉼표(,)로 구분해서 나열해주세요
-                        4. 각 카테고리 이름은 목록에 있는 정확한 카테고리를 사용해주세요
-                        5. 만약 목록에 해당하는 음식이 없다면 '해당없음'이라고 답해주세요
-                        6. 답변 예시: '김치찌개, 밥, 계란후라이' 또는 '피자' 또는 '해당없음'
-                        7. 반찬이나 소스류를 제외하고 주요 요리 카테고리만 찾아주세요
-                        8. 추가 설명 없이 카테고리 이름만 작성해주세요""",
-                categoriesString
+                        1. 반드시 제공된 음식 목록에서만 선택
+                        2. 반찬이나 소스류를 제외하고 주요 요리 카테고리만 작성
+                        3. 여러 음식이면 쉼표(,)로 구분
+                        4. 목록에 해당하지 않으면 '해당없음'
+                        5. 이미지가 기억나지 않으면 '기억없음'
+                        6. 답변은 카테고리 이름만, 추가 설명 없음
+                        7. 이미지 식별자를 꼭 기억
+                        8. 답변 예시: '김치찌개, 밥, 계란후라이' 또는 '피자' 또는 '해당없음''
+                        
+                        예외:
+                        피자는 음식목록 중 빵 및 과자류에 해당됨
+                        
+                        
+                        """
+                ,
+                categoriesString, imageID
         );
 
         // 요청 body 구성
@@ -262,7 +270,7 @@ public class MealInfoFoodAnalyzeService {
             throw new RuntimeException("이미지 분석 중 오류가 발생했습니다: " + e.getMessage(), e);
         }
     }
-    private List<String> analyzeImage(String base64Image, List<String> categories, int foodCount, String convID) {
+    private List<String> analyzeImage(List<String> categories, int foodCount, String convID, String imageID) {
         // 리스트를 문자열로 변환
         String categoriesString = String.join(", ", categories);
         System.out.println("GPT 선제시목록(" + categories.size() + ")개 : " + categoriesString);
@@ -270,20 +278,23 @@ public class MealInfoFoodAnalyzeService {
         // 프롬프트 생성
         String prompt = String.format(
                 """
-                        이전에 제시했던 이미지에 있는 모든 음식 카테고리를 찾아주세요.
+                        이전에 제시했던 이미지에 있는 모든 음식 목록을 찾아주세요.
                         
                         음식 목록: %s
+                        이미지 식별자: %s
                         
                         규칙:
-                        1. 반드시 제공된 카테고리 목록에서만 선택해주세요
-                        2. 이미지에서 식별된 %d개의 음식 당 가장 적합한 카테고리를 찾아주세요
-                        3. 음식이 여러 개가 있다면 쉼표(,)로 구분해서 나열해주세요
-                        4. 각 카테고리 이름은 목록에 있는 정확한 카테고리를 사용해주세요
-                        5. 만약 목록에 해당하는 음식이 없다면 '해당없음'이라고 답해주세요
-                        6. 답변 예시: '김치찌개, 밥, 계란후라이' 또는 '피자' 또는 '해당없음''
-                        7. 추가 설명 없이 카테고리 이름만 작성해주세요
-                        8. 이미지가 기억나지 않으면 '기억없음'이라고 답해주세요""",
-                categoriesString, foodCount
+                        1. 반드시 제공된 음식 목록에서만 선택
+                        2. 이미지에서 식별된 %d개의 음식 당 가장 적합한 카테고리를 중복없이 작성
+                        3. 여러 음식이면 쉼표(,)로 구분
+                        4. 목록에 해당하지 않으면 '해당없음'
+                        5. 이미지가 기억나지 않으면 '기억없음'
+                        6. 답변은 카테고리 이름만, 추가 설명 없음
+                        7. 이미지 식별자를 꼭 기억
+                        8. 답변 예시: '김치찌개, 밥, 계란후라이' 또는 '피자' 또는 '해당없음''
+                        
+                        """,
+                categoriesString, imageID, foodCount
         );
 
         // 요청 body 구성
@@ -321,7 +332,7 @@ public class MealInfoFoodAnalyzeService {
             String result = extractContentFromResponse(response);
             System.out.println("GPT 응답결과 : " + result);
 
-            // 결과를 리스트로 변환하고 검증 -> 검증되지 못한 결과는 empty list로 반환됨
+            // 결과를 리스트로 변환하고 검증 -> 검증되지 못한 결과는 empty list<string>로 반환됨
             return parseAndValidateResult(result, categories);
 
         } catch (Exception e) {
@@ -330,10 +341,11 @@ public class MealInfoFoodAnalyzeService {
     }
     private List<String> parseAndValidateResult(String gptResponse, List<String> categories) {
         List<String> validFoods = new ArrayList<>();
-        String trimmedResponse = gptResponse.trim();
+        String trimmedResponse = gptResponse.trim();        // 문자열 앞뒤공백 제거
 
-        // "해당없음"인 경우
-        if ("해당없음".equals(trimmedResponse)) {
+        // "해당없음" or "기억없음"인 경우
+        if ("해당없음".equals(trimmedResponse) || ("기억없음".equals(trimmedResponse))) {
+            System.out.println("GPT 응답결과 : 해당없음 or 기억없음 -> null string 반환");
             return validFoods;
         }
 
@@ -362,6 +374,7 @@ public class MealInfoFoodAnalyzeService {
 
         // 중복 제거
         validFoods = validFoods.stream().distinct().collect(Collectors.toList());
+        System.out.println("Valid String: " + validFoods);
         return validFoods;
     }
 
