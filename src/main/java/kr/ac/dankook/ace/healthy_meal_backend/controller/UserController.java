@@ -137,8 +137,10 @@ public class UserController {
 
         mealInfo.setDiary(updateMealInfoRequestDTO.getDiary());
 
-        MealInfoPostDTO mealInfoPostDTO = modelMapper.map(mealInfo, MealInfoPostDTO.class);
+        // 섭취 식단에 따른 영양소 섭취량 계산 -> DailyIntake Update
+        nutrientIntakeService.applyInsertDailyIntake(mealInfo, user);
 
+        MealInfoPostDTO mealInfoPostDTO = modelMapper.map(mealInfo, MealInfoPostDTO.class);
         return ResponseEntity.ok(mealInfoPostDTO);
     }
 

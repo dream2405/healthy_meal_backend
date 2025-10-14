@@ -296,7 +296,7 @@ public class MealInfoFoodAnalyzeService {
 
         // 요청 body 구성
         Map<String, Object> requestBody = Map.of(
-                "model", MODEL5,
+                "model", MODEL4,
                 "conversation", convID,
                 "input", List.of(
                         Map.of(
