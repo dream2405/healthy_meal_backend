@@ -5,10 +5,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.transaction.Transactional;
 import kr.ac.dankook.ace.healthy_meal_backend.action.MealInfoAction;
-import kr.ac.dankook.ace.healthy_meal_backend.dto.DailyIntakeDTO;
-import kr.ac.dankook.ace.healthy_meal_backend.dto.MealInfoPostDTO;
-import kr.ac.dankook.ace.healthy_meal_backend.dto.UpdateMealInfoRequestDTO;
-import kr.ac.dankook.ace.healthy_meal_backend.dto.UserGetDTO;
+import kr.ac.dankook.ace.healthy_meal_backend.dto.*;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.DailyIntake;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.Food;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.MealInfo;
@@ -17,6 +14,7 @@ import kr.ac.dankook.ace.healthy_meal_backend.repository.DailyIntakeRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.FoodRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.MealInfoRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.UserRepository;
+import kr.ac.dankook.ace.healthy_meal_backend.service.MealInfoFoodAnalyzeService;
 import kr.ac.dankook.ace.healthy_meal_backend.service.NutrientIntakeService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
@@ -47,6 +45,7 @@ public class UserController {
     private final NutrientIntakeService nutrientIntakeService;
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
+    private final MealInfoFoodAnalyzeService mealInfoFoodAnalyzeService;
 
     @GetMapping("/{userId}")
     @Operation(summary = "주어진 ID를 가진 특정 유저 가져오기", security = @SecurityRequirement(name = "BearerAuth"))
@@ -104,10 +103,12 @@ public class UserController {
             summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보를 gpt가 분석",
             description = "식단 정보와 음식을 연결", security = @SecurityRequirement(name = "BearerAuth"))
     @Transactional
-    public ResponseEntity<List<String>> analyzeMealInfo(@PathVariable String userId,
+    public ResponseEntity<FoodResponseDTO> analyzeMealInfo(@PathVariable String userId,
                                                         @PathVariable Long mealInfoId) {
         List<String> foodResult = mealInfoAction.analyzeMealInfo(mealInfoId, userId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(foodResult);
+        List<Integer> foodWeight = mealInfoFoodAnalyzeService.getFoodWeight(foodResult);
+        FoodResponseDTO foodResponseDTO = new FoodResponseDTO(foodResult, foodWeight);
+        return ResponseEntity.status(HttpStatus.CREATED).body(foodResponseDTO);
     }
 
     @PatchMapping("/{userId}/meal-info/{mealInfoId}")
@@ -137,8 +138,10 @@ public class UserController {
 
         mealInfo.setDiary(updateMealInfoRequestDTO.getDiary());
 
-        MealInfoPostDTO mealInfoPostDTO = modelMapper.map(mealInfo, MealInfoPostDTO.class);
+        // 섭취 식단에 따른 영양소 섭취량 계산 -> DailyIntake Update
+        nutrientIntakeService.applyInsertDailyIntake(mealInfo, user);
 
+        MealInfoPostDTO mealInfoPostDTO = modelMapper.map(mealInfo, MealInfoPostDTO.class);
         return ResponseEntity.ok(mealInfoPostDTO);
     }
 

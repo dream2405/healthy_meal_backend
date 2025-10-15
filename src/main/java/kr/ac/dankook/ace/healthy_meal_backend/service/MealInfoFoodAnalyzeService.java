@@ -296,7 +296,7 @@ public class MealInfoFoodAnalyzeService {
 
         // 요청 body 구성
         Map<String, Object> requestBody = Map.of(
-                "model", MODEL5,
+                "model", MODEL4,
                 "conversation", convID,
                 "input", List.of(
                         Map.of(
@@ -439,6 +439,15 @@ public class MealInfoFoodAnalyzeService {
         validFoods = validFoods.stream().distinct().collect(Collectors.toList());
         System.out.println("Valid String: " + validFoods);
         return validFoods;
+    }
+
+    public List<Integer> getFoodWeight(List<String> foods) {
+        List<Integer> foodWeights = new ArrayList<>();
+        for (String food : foods) {
+            Optional<Food> foodEntity = foodRepository.findFirstByName(food);
+            foodEntity.ifPresent(foodRecord -> foodWeights.add(Integer.parseInt(foodRecord.getWeight().replaceAll("[^\\d.]", ""))));
+        }
+        return foodWeights;
     }
 
     // GPT Conversation 방 없애기 -> 일단 불필요

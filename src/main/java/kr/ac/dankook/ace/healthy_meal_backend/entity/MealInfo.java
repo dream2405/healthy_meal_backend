@@ -72,6 +72,10 @@ public class MealInfo {
         food.getMealInfoFoodLinks().add(link);
     }
 
+    public List<MealInfoFoodLink> getFoodLink() {
+        return this.mealInfoFoodLinks;
+    }
+
     public void removeFood(Food food) {
         Iterator<MealInfoFoodLink> iterator = this.mealInfoFoodLinks.iterator();
 
