@@ -441,6 +441,15 @@ public class MealInfoFoodAnalyzeService {
         return validFoods;
     }
 
+    public List<Integer> getFoodWeight(List<String> foods) {
+        List<Integer> foodWeights = new ArrayList<>();
+        for (String food : foods) {
+            Optional<Food> foodEntity = foodRepository.findFirstByName(food);
+            foodEntity.ifPresent(foodRecord -> foodWeights.add(Integer.parseInt(foodRecord.getWeight().replaceAll("[^\\d.]", ""))));
+        }
+        return foodWeights;
+    }
+
     // GPT Conversation 방 없애기 -> 일단 불필요
     /*public boolean deleteConversation(String conversationId) {
         RestTemplate restTemplate = new RestTemplate();
