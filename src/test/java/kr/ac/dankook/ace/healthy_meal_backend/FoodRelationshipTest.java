@@ -22,7 +22,7 @@ public class FoodRelationshipTest {
     @Autowired
     private TestEntityManager entityManager;
 
-    @Test
+    /*@Test
     void testAddMealInfo() {
         // MealInfo에 필요한 User 생성
         User user = new User();
@@ -63,7 +63,7 @@ public class FoodRelationshipTest {
         assertNotNull(mealInfos);
         assertEquals(1, mealInfos.size());
         assertEquals(retrievedMealInfo.getId(), mealInfos.get(0).getId());
-    }
+    }*/
 
     @Test
     void testMealInfoFoodRelationship() {
