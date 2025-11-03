@@ -55,3 +55,8 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform()
 }
+
+tasks.named("bootBuildImage") {
+    imageName = "ghcr.io/${System.getenv("GITHUB_REPOSITORY")}:${version}"
+    publish = System.getenv("PUBLISH_IMAGE") == "true"
+}
