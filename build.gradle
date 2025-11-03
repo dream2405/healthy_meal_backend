@@ -47,6 +47,9 @@ dependencies {
     implementation 'org.springframework.security:spring-security-crypto'
     // Levenshtein 문자열 유사도 측정용
     implementation 'org.apache.commons:commons-text:1.11.0'
+    // DB 마이그레이션 및 CI/CD 준비
+    implementation "org.flywaydb:flyway-core:11.15.0"
+    implementation "org.flywaydb:flyway-mysql"
 }
 
 tasks.named('test') {

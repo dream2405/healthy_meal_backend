@@ -7,13 +7,22 @@ spring:
     multipart:
       max-file-size: 100MB
       max-request-size: 100MB
+  flyway:
+    locations: "classpath:db/migration/mysql"
+    enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+storage:
+  location: /mnt/vol1/mysql_dir/img/
 
 springdoc:
   swagger-ui:
     path: swagger-ui
 
 server:
-  port: 51820
+  port: 4913
 
 logging:
   level:
