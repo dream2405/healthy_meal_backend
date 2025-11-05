@@ -7,3 +7,12 @@
 | 김지우 | Programmer    | 데이터 전처리 & AI모델 개발 |
 | 권진우 | Programmer    | SpringBoot 백엔드 개발 |
 | 이규형 | Programmer    | 소프트웨어 아키텍쳐 개발     |
+
+## DB 초기화
+
+```mysql
+DROP DATABASE test;
+CREATE DATABASE test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+GRANT ALL PRIVILEGES ON test.* TO 'user'@'%';
+FLUSH PRIVILEGES;
+```
