@@ -15,6 +15,7 @@ class HealthyMealBackendApplicationTests {
 
     @Test
     void contextLoads() {
+
     }
 
 }
