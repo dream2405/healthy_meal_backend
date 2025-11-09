@@ -39,8 +39,20 @@ jobs:
           # GITHUB_TOKEN은 자동으로 생성되는 비밀 토큰
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build Image
-        run: ./gradlew bootBuildImage --imageName="ghcr.io/${{ github.repository }}:${{ env.VERSION }}"
+      - name: Build and Push Arch-specific Images
+        run: | 
+          ./gradlew bootBuildImage \
+            --imageName="ghcr.io/${{ github.repository }}:${{ env.VERSION }}-amd64" \
+            --imagePlatform=linux/amd64
+          
+          ./gradlew bootBuildImage \
+            --imageName="ghcr.io/${{ github.repository }}:${{ env.VERSION }}-arm64" \
+            --imagePlatform=linux/arm64
 
-      - name: Push Image
-        run: docker push "ghcr.io/${{ github.repository }}:${{ env.VERSION }}"
+      - name: Create and Push Multi-arch Manifest
+        run: |
+          docker manifest create ghcr.io/${{ github.repository }}:${{ env.VERSION }} \
+            --amend ghcr.io/${{ github.repository }}:${{ env.VERSION }}-amd64 \
+            --amend ghcr.io/${{ github.repository }}:${{ env.VERSION }}-arm64 
+          
+          docker manifest push ghcr.io/${{ github.repository }}:${{ env.VERSION }}
