@@ -2,7 +2,7 @@ spring:
   application:
     name: healthy_meal_backend
   config:
-    import: classpath:application-secret.yml
+    import: optional:classpath:application-secret.yml
   servlet:
     multipart:
       max-file-size: 100MB
@@ -13,6 +13,19 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+  datasource:
+    url: jdbc:mysql://hmb-dev-external-db:3307/test?allowLoadLocalInfile=true
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+
+openai:
+  api:
+    key: ${OPENAI_KEY}
+
+jwt:
+  secret: ${JWT_SECRET}
+  token:
+    valid_ms: 10800000 # 3시간
 
 storage:
   location: /mnt/vol1/mysql_dir/img/
