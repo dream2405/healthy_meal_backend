@@ -22,7 +22,7 @@ springdoc:
     path: swagger-ui
 
 server:
-  port: 4913
+  port: 5000
 
 logging:
   level:
