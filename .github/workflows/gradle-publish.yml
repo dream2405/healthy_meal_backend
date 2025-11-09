@@ -39,6 +39,9 @@ jobs:
           # GITHUB_TOKEN은 자동으로 생성되는 비밀 토큰
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set up QEMU for multi-arch build
+        uses: docker/setup-qemu-action@v3
+
       - name: Build and Push Arch-specific Images
         run: | 
           ./gradlew bootBuildImage \
