@@ -46,12 +46,12 @@ jobs:
         run: | 
           ./gradlew bootBuildImage \
             --imageName="ghcr.io/${{ github.repository }}:${{ env.VERSION }}-amd64" \
-            --imagePlatform=linux/amd64
+            --imagePlatform=linux/amd64 \
             --publishImage
           
           ./gradlew bootBuildImage \
             --imageName="ghcr.io/${{ github.repository }}:${{ env.VERSION }}-arm64" \
-            --imagePlatform=linux/arm64
+            --imagePlatform=linux/arm64 \
             --publishImage
 
       - name: Create and Push Multi-arch Manifest
