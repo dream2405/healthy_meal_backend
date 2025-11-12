@@ -28,7 +28,7 @@ jwt:
     valid_ms: 10800000 # 3시간
 
 storage:
-  location: /mnt/vol1/mysql_dir/img/
+  location: /data
 
 springdoc:
   swagger-ui:
