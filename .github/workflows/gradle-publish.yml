@@ -7,12 +7,19 @@ on:
 #      - 'main'
       - 'feature/db_migration'
 
+#concurrency:
+#  group: ${{ github.workflow }}-${{ github.ref }}
+#  cancel-in-progress: true # 가장 최신 커밋의 배포만 성공
+
 jobs:
   build-and-push-image:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+
+    outputs:
+      version: ${{ steps.extract_version.outputs.VERSION }}
 
     steps:
       - name: Checkout repository
@@ -28,7 +35,8 @@ jobs:
         uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582 # v4.0.0
 
       - name: Extract version
-        run: echo "VERSION=$(./gradlew properties -q | grep "^version:" | awk '{print $2}')" >> $GITHUB_ENV
+        id: extract_version
+        run: echo "VERSION=$(./gradlew properties -q | grep "^version:" | awk '{print $2}')" >> $GITHUB_OUTPUT
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -43,22 +51,56 @@ jobs:
         uses: docker/setup-qemu-action@v3
 
       - name: Build and Push Arch-specific Images
-        run: | 
+        run: |
+          VERSION=${{ steps.extract_version.outputs.VERSION }}
+          
           ./gradlew bootBuildImage \
-            --imageName="ghcr.io/${{ github.repository }}:${{ env.VERSION }}-amd64" \
+            --imageName="ghcr.io/${{ github.repository }}:${ VERSION }-amd64" \
             --imagePlatform=linux/amd64
           
           ./gradlew bootBuildImage \
-            --imageName="ghcr.io/${{ github.repository }}:${{ env.VERSION }}-arm64" \
+            --imageName="ghcr.io/${{ github.repository }}:${ VERSION }-arm64" \
             --imagePlatform=linux/arm64
           
-          docker push "ghcr.io/${{ github.repository }}:${{ env.VERSION }}-amd64"
-          docker push "ghcr.io/${{ github.repository }}:${{ env.VERSION }}-arm64"
+          docker push "ghcr.io/${{ github.repository }}:${ VERSION }-amd64"
+          docker push "ghcr.io/${{ github.repository }}:${ VERSION }-arm64"
 
       - name: Create and Push Multi-arch Manifest
         run: |
-          docker manifest create ghcr.io/${{ github.repository }}:${{ env.VERSION }} \
-            --amend ghcr.io/${{ github.repository }}:${{ env.VERSION }}-amd64 \
-            --amend ghcr.io/${{ github.repository }}:${{ env.VERSION }}-arm64 
+          docker manifest create ghcr.io/${{ github.repository }}:${ VERSION } \
+            --amend ghcr.io/${{ github.repository }}:${ VERSION }-amd64 \
+            --amend ghcr.io/${{ github.repository }}:${ VERSION }-arm64 
           
-          docker manifest push ghcr.io/${{ github.repository }}:${{ env.VERSION }}
+          docker manifest push ghcr.io/${{ github.repository }}:${ VERSION }
+
+  trigger-gitops-update:
+    runs-on: ubuntu-latest
+
+    needs: [ build-and-push-image ]
+
+    steps:
+      - name: Checkout K8s Infra Repo
+        uses: actions/checkout@v4
+        with:
+          repository: dream2405/healthy_meal_infra
+          ref: main
+          ssh-key: ${{ secrets.INFRA_REPO_DEPLOY_KEY }}
+          path: 'infra-repo'
+
+      - name: Update Helm Value File
+        uses: mikefarah/yq@master
+        with:
+          cmd: yq -i ".image.tag = \"${{ needs.build-and-push.outputs.version }}\"" "infra-repo/envs/dev.yaml"
+
+      - name: Commit and Push to Infra Repo
+        run: |
+          cd infra-repo
+          git config --global user.name "GitHub Actions CI"
+          git config --global user.email "ci-actions@github.com"
+          
+          if ! git diff --quiet; then
+            git commit -am "CI: Update image tag for ${{ github.event.repo.name }} to ${{ needs.build-and-push.outputs.version }}"
+            git push
+          else
+            echo "No changes to commit. Image tag is already ${{ needs.build-and-push.outputs.version }}."
+          fi
