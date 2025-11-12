@@ -7,6 +7,12 @@ on:
 #      - 'main'
       - 'feature/db_migration'
 
+    paths:
+      - 'src/**'
+      - 'build.gradle'
+      - '.github/workflows/**'
+      - '!Readme.md'
+
 #concurrency:
 #  group: ${{ github.workflow }}-${{ github.ref }}
 #  cancel-in-progress: true # 가장 최신 커밋의 배포만 성공
@@ -55,23 +61,23 @@ jobs:
           VERSION=${{ steps.extract_version.outputs.VERSION }}
           
           ./gradlew bootBuildImage \
-            --imageName="ghcr.io/${{ github.repository }}:${ VERSION }-amd64" \
+            --imageName="ghcr.io/${{ github.repository }}:${VERSION}-amd64" \
             --imagePlatform=linux/amd64
           
           ./gradlew bootBuildImage \
-            --imageName="ghcr.io/${{ github.repository }}:${ VERSION }-arm64" \
+            --imageName="ghcr.io/${{ github.repository }}:${VERSION}-arm64" \
             --imagePlatform=linux/arm64
           
-          docker push "ghcr.io/${{ github.repository }}:${ VERSION }-amd64"
-          docker push "ghcr.io/${{ github.repository }}:${ VERSION }-arm64"
+          docker push "ghcr.io/${{ github.repository }}:${VERSION}-amd64"
+          docker push "ghcr.io/${{ github.repository }}:${VERSION}-arm64"
 
       - name: Create and Push Multi-arch Manifest
         run: |
-          docker manifest create ghcr.io/${{ github.repository }}:${ VERSION } \
-            --amend ghcr.io/${{ github.repository }}:${ VERSION }-amd64 \
-            --amend ghcr.io/${{ github.repository }}:${ VERSION }-arm64 
+          docker manifest create ghcr.io/${{ github.repository }}:${VERSION} \
+            --amend ghcr.io/${{ github.repository }}:${VERSION}-amd64 \
+            --amend ghcr.io/${{ github.repository }}:${VERSION}-arm64 
           
-          docker manifest push ghcr.io/${{ github.repository }}:${ VERSION }
+          docker manifest push ghcr.io/${{ github.repository }}:${VERSION}
 
   trigger-gitops-update:
     runs-on: ubuntu-latest
