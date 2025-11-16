@@ -103,14 +103,17 @@ jobs:
           cmd: yq -i '.image.tag = strenv(NEW_TAG)' "infra-repo/envs/dev.yaml"
 
       - name: Commit and Push to Infra Repo
+        env:
+          NEW_VERSION: ${{ needs.build-and-push.outputs.version }}
+          REPO_NAME: ${{ github.event.repository.name }}
         run: |
           cd infra-repo
           git config --global user.name "GitHub Actions CI"
           git config --global user.email "ci-actions@github.com"
           
           if ! git diff --quiet; then
-            git commit -am "CI: Update image tag for ${{ github.event.repo.name }} to ${{ needs.build-and-push.outputs.version }}"
+            git commit -am "CI: Update image tag for $REPO_NAME to $NEW_VERSION"
             git push
           else
-            echo "No changes to commit. Image tag is already ${{ needs.build-and-push.outputs.version }}."
+            echo "No changes to commit. Image tag is already $NEW_VERSION."
           fi
