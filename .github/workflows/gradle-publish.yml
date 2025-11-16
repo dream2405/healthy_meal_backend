@@ -98,7 +98,7 @@ jobs:
       - name: Update Helm Value File
         uses: mikefarah/yq@master
         with:
-          cmd: yq -i ".image.tag = \"${{ needs.build-and-push.outputs.version }}\"" "infra-repo/envs/dev.yaml"
+          cmd: yq -i '.image.tag = \"${{ needs.build-and-push.outputs.version }}\"' "infra-repo/envs/dev.yaml"
 
       - name: Commit and Push to Infra Repo
         run: |
