@@ -8,7 +8,7 @@ import jakarta.validation.Valid;
 import kr.ac.dankook.ace.healthy_meal_backend.dto.FoodDTO;
 import kr.ac.dankook.ace.healthy_meal_backend.dto.FoodPostDTO;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.Food;
-import kr.ac.dankook.ace.healthy_meal_backend.entity.MealInfo;
+import kr.ac.dankook.ace.healthy_meal_backend.entity.MealRecord;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.FoodRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.MealInfoRepository;
@@ -63,7 +63,7 @@ public class FoodController {
 
     @GetMapping("/{foodId}/meal-info")
     @Operation(summary = "주어진 ID를 가진 음식을 선호하는 모든 유저들 가져오기", security = @SecurityRequirement(name = "BearerAuth"))
-    public ResponseEntity<List<MealInfo>> getMealInfoByFoodId(@PathVariable long foodId) {
+    public ResponseEntity<List<MealRecord>> getMealInfoByFoodId(@PathVariable long foodId) {
         var food = foodRepository.findById(foodId);
         return food
                 .map(value -> ResponseEntity.ok(value.getMealInfos()))

@@ -31,14 +31,14 @@ public class NutrientIntakeService {
     }
 
     @Transactional
-    public void applyInsertDailyIntake(MealInfo mealInfo, User user) {
+    public void applyInsertDailyIntake(MealRecord mealRecord, User user) {
         LocalDate now = LocalDate.now();
         DailyIntake dailyIntake = dailyIntakeRepository.findByUserIdAndDay(user.getId(), now)
                 .stream()
                 .findFirst()
                 .orElseGet(() -> dailyIntakeRepository.save(createNewDailyIntake(user, now)));
-        int foodNum = mealInfo.getFoods().size();
-        mealInfo.getFoodLink().forEach(foodLink -> addFoodNutrition(dailyIntake, foodLink));
+        int foodNum = mealRecord.getFoods().size();
+        mealRecord.getFoodLink().forEach(foodLink -> addFoodNutrition(dailyIntake, foodLink));
     }
     private DailyIntake createNewDailyIntake(User user, LocalDate now) {
         DailyIntake dailyIntake = new DailyIntake();
@@ -46,7 +46,7 @@ public class NutrientIntakeService {
         dailyIntake.setDay(now);
         return dailyIntake;
     }
-    private void addFoodNutrition(DailyIntake dailyIntake, MealInfoFoodLink foodLink) {
+    private void addFoodNutrition(DailyIntake dailyIntake, MealRecordFoodLink foodLink) {
         try {
             Food food = foodLink.getFood();
             float intakeRatio = Float.parseFloat(food.getWeight().replaceAll("[^\\d.]", "")) / 100;
@@ -82,13 +82,13 @@ public class NutrientIntakeService {
     }
 
     @Transactional
-    public void applyDeleteDailyIntake(MealInfo mealInfo, User user, LocalDate date) {
+    public void applyDeleteDailyIntake(MealRecord mealRecord, User user, LocalDate date) {
         DailyIntake dailyIntake = dailyIntakeRepository.findByUserIdAndDay(user.getId(), date)
                 .stream()
                 .findFirst()
                 .orElseThrow(NoSuchElementException::new);
-        int foodNum = mealInfo.getFoods().size();
-        mealInfo.getFoods().forEach(food -> deleteFoodNutrition(dailyIntake, food, foodNum));
+        int foodNum = mealRecord.getFoods().size();
+        mealRecord.getFoods().forEach(food -> deleteFoodNutrition(dailyIntake, food, foodNum));
     }
     private void deleteFoodNutrition(DailyIntake dailyIntake, Food food,  int foodNum) {
         try {

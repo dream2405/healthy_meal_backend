@@ -9,15 +9,15 @@ import org.hibernate.annotations.OnDeleteAction;
 @Getter
 @Setter
 @Entity
-@Table(name = "nutri_weight")
-public class NutriWeight {
+@Table(name = "nutrient_weight")
+public class NutrientWeight {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
     private Integer id;
 
-    @Column(name = "nutrient")
-    private String nutrient;
+    @Column(name = "nutrient_name")
+    private String nutrientName;
 
     @Column(name = "weight")
     private Float weight;

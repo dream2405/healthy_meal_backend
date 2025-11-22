@@ -21,38 +21,78 @@ public class DailyIntake {
     @Column(name = "day")
     private LocalDate day;
 
+    @Column(name = "dailyscore")
+    private Integer dailyscore;
+
     @Column(name = "energy_kcal")
-    private Double energyKcal = 0d;
-
-    @Column(name = "protein_g")
-    private Double proteinG = 0d;
-
-    @Column(name = "fat_g")
-    private Double fatG = 0d;
+    private Double energyKcal;
 
     @Column(name = "carbohydrate_g")
-    private Double carbohydrateG = 0d;
+    private Double carbohydrateG;
 
-    @Column(name = "sugars_g")
-    private Double sugarsG = 0d;
+    @Column(name = "protein_g")
+    private Double proteinG;
+
+    @Column(name = "calcium_mg")
+    private Double calciumMg;
+
+    @Column(name = "kalium_mg")
+    private Double kaliumMg;
+
+    @Column(name = "iron_mg")
+    private Double ironMg;
+
+    @Column(name = "magnesium_mg")
+    private Double magnesiumMg;
+
+    @Column(name = "zinc_mg")
+    private Double zincMg;
 
     @Column(name = "cellulose_g")
-    private Double celluloseG = 0d;
+    private Double celluloseG;
 
-    @Column(name = "sodium_mg")
-    private Double sodiumMg = 0d;
+    @Column(name = "aminoacid_mg")
+    private Double aminoacidMg;
 
-    @Column(name = "cholesterol_mg")
-    private Double cholesterolMg = 0d;
+    @Column(name = "leucine_mg")
+    private Double leucineMg;
 
-    @Column(name = "score")
-    private Integer score;
+    @Column(name = "methionine_mg")
+    private Double methionineMg;
+
+    @Column(name = "selenium_ug")
+    private Double seleniumUg;
+
+    @Column(name = "omega3_g")
+    private Double omega3G;
+
+    @Column(name = "vitaminA_ug")
+    private Double vitaminAUg;
+
+    @Column(name = "vitaminB_mg")
+    private Double vitaminBMg;
+
+    @Column(name = "folicacid_ug")
+    private Double folicacidUg;
+
+    @Column(name = "vitaminB12_mg")
+    private Double vitaminB12Mg;
+
+    @Column(name = "vitaminC_mg")
+    private Double vitaminCMg;
+
+    @Column(name = "vitaminD_ug")
+    private Double vitaminDUg;
+
+    @Column(name = "vitaminE_mg")
+    private Double vitaminEMg;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "user_id", nullable = false)
     private User user; // 일별 섭취 기록을 기록한 유저
 
+    /*
     public void addMealIntake(double cal, double pro, double fat, double car, double sug, double cel, double sod, double cho) {
         this.energyKcal += cal;
         this.proteinG += pro;
@@ -90,4 +130,6 @@ public class DailyIntake {
             this.cholesterolMg -= cho;
         }
     }
+
+    */
 }

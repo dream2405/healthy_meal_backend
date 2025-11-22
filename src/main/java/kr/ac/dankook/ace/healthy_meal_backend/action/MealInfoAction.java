@@ -1,7 +1,7 @@
 package kr.ac.dankook.ace.healthy_meal_backend.action;
 
 import jakarta.transaction.Transactional;
-import kr.ac.dankook.ace.healthy_meal_backend.entity.MealInfo;
+import kr.ac.dankook.ace.healthy_meal_backend.entity.MealRecord;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
 import kr.ac.dankook.ace.healthy_meal_backend.service.MealInfoFoodAnalyzeService;
 import kr.ac.dankook.ace.healthy_meal_backend.service.NutrientIntakeService;
@@ -31,14 +31,14 @@ public class MealInfoAction {
     }
 
     @Transactional
-    public MealInfo createMealInfo(MultipartFile file, User user) {
+    public MealRecord createMealInfo(MultipartFile file, User user) {
         String filePath = storageService.store(file);
         return mealInfoFoodAnalyzeService.createMealInfo(filePath, user);
     }
 
     public List<String> analyzeMealInfo(Long mealInfoId, String userId) {
-        MealInfo mealInfo = mealInfoFoodAnalyzeService.validateMealInfoId(mealInfoId, userId);
-        String base64Image = storageService.convertImageToBase64(mealInfo.getImgPath());
+        MealRecord mealRecord = mealInfoFoodAnalyzeService.validateMealInfoId(mealInfoId, userId);
+        String base64Image = storageService.convertImageToBase64(mealRecord.getImgPath());
         List<String> gptResponse;
         gptResponse = mealInfoFoodAnalyzeService.gptAnalyzeImage(base64Image);
         return gptResponse;
@@ -55,9 +55,9 @@ public class MealInfoAction {
     }*/
 
     public void deleteMealInfo(Long mealInfoId, User user) {
-        MealInfo mealInfo = mealInfoFoodAnalyzeService.validateMealInfoId(mealInfoId, user.getId());
-        storageService.delete(mealInfo.getImgPath());
-        nutrientIntakeService.applyDeleteDailyIntake(mealInfo, user, mealInfo.getCreatedAt().toLocalDate());
-        mealInfoFoodAnalyzeService.deleteMealInfo(mealInfo, user);
+        MealRecord mealRecord = mealInfoFoodAnalyzeService.validateMealInfoId(mealInfoId, user.getId());
+        storageService.delete(mealRecord.getImgPath());
+        nutrientIntakeService.applyDeleteDailyIntake(mealRecord, user, mealRecord.getCreatedAt().toLocalDate());
+        mealInfoFoodAnalyzeService.deleteMealInfo(mealRecord, user);
     }
 }

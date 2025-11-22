@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 @Entity
@@ -21,55 +20,82 @@ public class Food {
     @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "representative_food")
-    private String representativeFood;
-
     @Column(name = "major_category")
     private String majorCategory;
 
-    @Column(name = "medium_category")
-    private String mediumCategory;
-
-    @Column(name = "minor_category")
-    private String minorCategory;
-
-    @Column(name = "subcategory")
-    private String subcategory;
-
-    @Column(name = "nutri_ref_amt", length = 5)
-    private String nutriRefAmt; // char(5) -> String 매핑
+    @Column(name = "representative_food")
+    private String representativeFood;
 
     @Column(name = "weight")
     private String weight;
 
     @Column(name = "energy_kcal")
-    private Double energyKcal; // nullable int -> Integer (래퍼 타입)
-
-    @Column(name = "protein_g")
-    private Double proteinG; // nullable double -> Double (래퍼 타입)
-
-    @Column(name = "fat_g")
-    private Double fatG;
+    private Double energyKcal;
 
     @Column(name = "carbohydrate_g")
     private Double carbohydrateG;
 
-    @Column(name = "sugars_g")
-    private Double sugarsG;
+    @Column(name = "protein_g")
+    private Double proteinG;
+
+    @Column(name = "calcium_mg")
+    private Double calciumMg;
+
+    @Column(name = "kalium_mg")
+    private Double kaliumMg;
+
+    @Column(name = "iron_mg")
+    private Double ironMg;
+
+    @Column(name = "magnesium_mg")
+    private Double magnesiumMg;
+
+    @Column(name = "zinc_mg")
+    private Double zincMg;
 
     @Column(name = "cellulose_g")
     private Double celluloseG;
 
-    @Column(name = "sodium_mg")
-    private Double sodiumMg;
+    @Column(name = "aminoacid_mg")
+    private Double aminoacidMg;
 
-    @Column(name = "cholesterol_mg")
-    private Double cholesterolMg;
+    @Column(name = "leucine_mg")
+    private Double leucineMg;
+
+    @Column(name = "methionine_mg")
+    private Double methionineMg;
+
+    @Column(name = "selenium_ug")
+    private Double seleniumUg;
+
+    @Column(name = "omega3_g")
+    private Double omega3G;
+
+    @Column(name = "vitaminA_ug")
+    private Double vitaminAUg;
+
+    @Column(name = "vitaminB_mg")
+    private Double vitaminBMg;
+
+    @Column(name = "folicacid_ug")
+    private Double folicacidUg;
+
+    @Column(name = "vitaminB12_mg")
+    private Double vitaminB12Mg;
+
+    @Column(name = "vitaminC_mg")
+    private Double vitaminCMg;
+
+    @Column(name = "vitaminD_ug")
+    private Double vitaminDUg;
+
+    @Column(name = "vitaminE_mg")
+    private Double vitaminEMg;
 
     // MealInfo와의 판별 다대다 연관관계
     @OneToMany(mappedBy = "food", cascade = CascadeType.ALL)
-    private List<MealInfoFoodLink> mealInfoFoodLinks = new ArrayList<>();
-
+    private List<MealRecordFoodLink> mealRecordFoodLinks = new ArrayList<>();
+    /*
     public void addMealInfo(MealInfo mealInfo) {
         // 이미 연결된 경우 중복 추가 방지
         for (MealInfoFoodLink link : mealInfoFoodLinks) {
@@ -112,11 +138,11 @@ public class Food {
         }
         return mealInfos;
     }
-
+    */
     // 추가: User와의 다대다 관계를 위한 UserFoodLink 매핑
     @OneToMany(mappedBy = "food", fetch = FetchType.LAZY)
     private List<UserFoodLink> userFoodLinks = new ArrayList<>();
-
+    /*
     // 추가: User 추가 메소드
     public void addUser(User user) {
         // 이미 연결된 경우 중복 추가 방지
@@ -161,4 +187,6 @@ public class Food {
         }
         return users;
     }
+    */
 }
+

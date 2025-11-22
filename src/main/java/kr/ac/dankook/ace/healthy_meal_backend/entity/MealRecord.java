@@ -10,16 +10,15 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
-import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
 
 @Getter
 @Setter
 @Entity
-@Table(name = "meal_info")
+@Table(name = "mealrecord")
 @EntityListeners(AuditingEntityListener.class)
-public class MealInfo {
+public class MealRecord {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
@@ -27,6 +26,16 @@ public class MealInfo {
 
     @Column(name = "img_path")
     private String imgPath;
+
+    @Column(name = "meal_name")
+    private String mealName;
+
+    @Lob
+    @Column(name = "diary")
+    private String diary;
+
+    @Column(name = "taken_at")
+    private LocalDateTime takenAt;
 
     @CreatedDate
     @Column(name = "created_at")
@@ -36,10 +45,6 @@ public class MealInfo {
     @Column(name = "last_modified_at")
     private LocalDateTime lastModifiedAt;
 
-    @Lob
-    @Column(name = "diary")
-    private String diary;
-
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "user_id", nullable = false)
@@ -47,8 +52,9 @@ public class MealInfo {
 
     // Food와의 판별 다대다 연관관계
     @OneToMany(mappedBy = "mealInfo", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<MealInfoFoodLink> mealInfoFoodLinks = new ArrayList<>();
+    private List<MealRecordFoodLink> mealRecordFoodLinks = new ArrayList<>();
 
+    /*
     // 연관관계 편의 메서드
     public void addFoodLink(Food food, Float intakeAmount) {
         // 이미 연결된 경우 중복 추가 방지
@@ -64,7 +70,7 @@ public class MealInfo {
         linkId.setFoodId(food.getId());
 
         link.setId(linkId);
-        link.setMealInfo(this);
+        link.setMealRecord(this);
         link.setFood(food);
         link.setIntakeAmount(intakeAmount);
 
@@ -98,5 +104,5 @@ public class MealInfo {
         }
         return foods;
     }
-
+    */
 }

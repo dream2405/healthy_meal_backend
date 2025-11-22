@@ -2,7 +2,7 @@ package kr.ac.dankook.ace.healthy_meal_backend.service;
 
 import jakarta.transaction.Transactional;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.Food;
-import kr.ac.dankook.ace.healthy_meal_backend.entity.MealInfo;
+import kr.ac.dankook.ace.healthy_meal_backend.entity.MealRecord;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.FoodRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.MealInfoRepository;
@@ -55,12 +55,12 @@ public class MealInfoFoodAnalyzeService {
     }
 
     @Transactional
-    public MealInfo createMealInfo(String imgPath, User user) {
-        MealInfo mealInfo = new MealInfo();
-        mealInfo.setImgPath(imgPath);
-        mealInfo.setUser(user);
-        mealInfoRepository.save(mealInfo);
-        return mealInfo;
+    public MealRecord createMealInfo(String imgPath, User user) {
+        MealRecord mealRecord = new MealRecord();
+        mealRecord.setImgPath(imgPath);
+        mealRecord.setUser(user);
+        mealInfoRepository.save(mealRecord);
+        return mealRecord;
     }
 
     // 이전버전 자유추론 gpt 프롭프트
@@ -640,8 +640,8 @@ public class MealInfoFoodAnalyzeService {
         return mealInfoRepository.save(mealInfo);
     }*/
 
-    public MealInfo validateMealInfoId(Long mealInfoId, String userId) {
-        Optional<MealInfo> mealInfo = mealInfoRepository.findById(mealInfoId);
+    public MealRecord validateMealInfoId(Long mealInfoId, String userId) {
+        Optional<MealRecord> mealInfo = mealInfoRepository.findById(mealInfoId);
         if (mealInfo.isEmpty()) {
             throw new NoSuchElementException("분석을 위해 기록된 식단 없음");
         } else if (!mealInfo.get().getUser().getId().equals(userId)) {
@@ -652,10 +652,10 @@ public class MealInfoFoodAnalyzeService {
     }
 
     @Transactional
-    public void deleteMealInfo(MealInfo mealInfo, User user) {
+    public void deleteMealInfo(MealRecord mealRecord, User user) {
         try {
-            mealInfo.setUser(null);
-            mealInfoRepository.delete(mealInfo);
+            mealRecord.setUser(null);
+            mealInfoRepository.delete(mealRecord);
         } catch (Exception e) {
             e.printStackTrace();
             throw e;
@@ -666,8 +666,8 @@ public class MealInfoFoodAnalyzeService {
     public void createFoodMealInfoRelation(String foodName, Long mealInfoId) {
         try {
             Food food = foodRepository.findFirstByName(foodName).orElseThrow(() -> new NoSuchElementException("식품 식별되지않음"));
-            MealInfo mealInfo = mealInfoRepository.findById(mealInfoId).orElseThrow(() -> new NoSuchElementException("식단기록없음"));
-            food.addMealInfo(mealInfo);
+            MealRecord mealRecord = mealInfoRepository.findById(mealInfoId).orElseThrow(() -> new NoSuchElementException("식단기록없음"));
+            food.addMealInfo(mealRecord);
         } catch (Exception e) {
             e.printStackTrace();
             throw e;

@@ -2,15 +2,13 @@ package kr.ac.dankook.ace.healthy_meal_backend;
 
 import jakarta.transaction.Transactional;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.Food;
-import kr.ac.dankook.ace.healthy_meal_backend.entity.MealInfo;
+import kr.ac.dankook.ace.healthy_meal_backend.entity.MealRecord;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
-
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -76,13 +74,13 @@ public class FoodRelationshipTest {
         entityManager.persistAndFlush(user1);
 
         // MealInfo 엔티티 생성 및 User와 연결
-        MealInfo mealInfo1 = new MealInfo();
-        MealInfo mealInfo2 = new MealInfo();
-        mealInfo1.setUser(user1);
-        mealInfo2.setUser(user1);
+        MealRecord mealRecord1 = new MealRecord();
+        MealRecord mealRecord2 = new MealRecord();
+        mealRecord1.setUser(user1);
+        mealRecord2.setUser(user1);
 
-        entityManager.persist(mealInfo1);
-        entityManager.persist(mealInfo2);
+        entityManager.persist(mealRecord1);
+        entityManager.persist(mealRecord2);
         entityManager.flush();
 
         Food[] foods = {
@@ -91,17 +89,17 @@ public class FoodRelationshipTest {
                 entityManager.find(Food.class, 3L)
         };
         for (Food food : foods) {
-            mealInfo1.addFoodLink(food, 1f);
-            mealInfo2.addFoodLink(food, 1f);
+            mealRecord1.addFoodLink(food, 1f);
+            mealRecord2.addFoodLink(food, 1f);
         }
 
         entityManager.flush();
 
-        assertEquals(3, mealInfo1.getFoods().size());
-        assertEquals(3, mealInfo2.getFoods().size());
+        assertEquals(3, mealRecord1.getFoods().size());
+        assertEquals(3, mealRecord2.getFoods().size());
 
-        assertTrue(foods[0].getMealInfos().stream().anyMatch(mealInfo -> mealInfo.getId().equals(mealInfo1.getId())));
-        assertTrue(foods[1].getMealInfos().stream().anyMatch(mealInfo -> mealInfo.getId().equals(mealInfo2.getId())));
+        assertTrue(foods[0].getMealInfos().stream().anyMatch(mealInfo -> mealInfo.getId().equals(mealRecord1.getId())));
+        assertTrue(foods[1].getMealInfos().stream().anyMatch(mealInfo -> mealInfo.getId().equals(mealRecord2.getId())));
     }
 
 }

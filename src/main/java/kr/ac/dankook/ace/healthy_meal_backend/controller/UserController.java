@@ -8,7 +8,7 @@ import kr.ac.dankook.ace.healthy_meal_backend.action.MealInfoAction;
 import kr.ac.dankook.ace.healthy_meal_backend.dto.*;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.DailyIntake;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.Food;
-import kr.ac.dankook.ace.healthy_meal_backend.entity.MealInfo;
+import kr.ac.dankook.ace.healthy_meal_backend.entity.MealRecord;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.DailyIntakeRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.FoodRepository;
@@ -76,8 +76,8 @@ public class UserController {
         if (!userRepository.existsById(userId)) {
             throw new NoSuchElementException("사용자를 찾을 수 없습니다: " + userId);
         }
-        List<MealInfo> mealInfos = mealInfoRepository.findByUserIdAndCreatedDate(userId, date);
-        List<MealInfoPostDTO> mealInfoPostDTOs = mealInfos.stream()
+        List<MealRecord> mealRecords = mealInfoRepository.findByUserIdAndCreatedDate(userId, date);
+        List<MealInfoPostDTO> mealInfoPostDTOs = mealRecords.stream()
                 .map(mealInfo -> modelMapper.map(mealInfo, MealInfoPostDTO.class)).toList();
         return ResponseEntity.ok().body(mealInfoPostDTOs);
     }
@@ -92,8 +92,8 @@ public class UserController {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다: " + userId));
         logger.info("식단사진저장 <시작>");
-        MealInfo mealInfo = mealInfoAction.createMealInfo(file, user);
-        MealInfoPostDTO mealInfoPostDTO = modelMapper.map(mealInfo, MealInfoPostDTO.class);
+        MealRecord mealRecord = mealInfoAction.createMealInfo(file, user);
+        MealInfoPostDTO mealInfoPostDTO = modelMapper.map(mealRecord, MealInfoPostDTO.class);
         logger.info("식단사진저장 <완료>");
         return ResponseEntity.status(HttpStatus.CREATED).body(mealInfoPostDTO);
     }
@@ -119,7 +119,7 @@ public class UserController {
             @RequestBody UpdateMealInfoRequestDTO updateMealInfoRequestDTO) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다: " + userId));
-        MealInfo mealInfo = user.getMealInfos().stream()
+        MealRecord mealRecord = user.getMealRecords().stream()
                 .filter(mf -> Objects.equals(mf.getId(), mealInfoId))
                 .findFirst()
                 .orElseThrow(() -> new NoSuchElementException("식단 정보를 찾을 수 없습니다: " + mealInfoId));
@@ -127,21 +127,21 @@ public class UserController {
             throw new IllegalArgumentException("섭취량과 음식 리스트 길이가 맞지 않음");
         }
 
-        mealInfo.getFoods().clear();
+        mealRecord.getFoods().clear();
 
         for(var i=0; i < updateMealInfoRequestDTO.getConfirmedFoods().size(); i++) {
             String foodName = updateMealInfoRequestDTO.getConfirmedFoods().get(i);
             Food food = foodRepository.findFirstByName(foodName)
                     .orElseThrow(() -> new IllegalArgumentException(foodName + " 에 해당하는 음식이 없음"));
-            mealInfo.addFoodLink(food, updateMealInfoRequestDTO.getIntakeAmounts().get(i));
+            mealRecord.addFoodLink(food, updateMealInfoRequestDTO.getIntakeAmounts().get(i));
         }
 
-        mealInfo.setDiary(updateMealInfoRequestDTO.getDiary());
+        mealRecord.setDiary(updateMealInfoRequestDTO.getDiary());
 
         // 섭취 식단에 따른 영양소 섭취량 계산 -> DailyIntake Update
-        nutrientIntakeService.applyInsertDailyIntake(mealInfo, user);
+        nutrientIntakeService.applyInsertDailyIntake(mealRecord, user);
 
-        MealInfoPostDTO mealInfoPostDTO = modelMapper.map(mealInfo, MealInfoPostDTO.class);
+        MealInfoPostDTO mealInfoPostDTO = modelMapper.map(mealRecord, MealInfoPostDTO.class);
         return ResponseEntity.ok(mealInfoPostDTO);
     }
 
@@ -151,11 +151,11 @@ public class UserController {
             @PathVariable String userId, @PathVariable Long mealInfoId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다: " + userId));
-        MealInfo mealInfo = user.getMealInfos().stream()
+        MealRecord mealRecord = user.getMealRecords().stream()
                 .filter(mf -> Objects.equals(mf.getId(), mealInfoId))
                 .findFirst()
                 .orElseThrow(() -> new NoSuchElementException("식단 정보를 찾을 수 없습니다: " + mealInfoId));
-        return ResponseEntity.ok(modelMapper.map(mealInfo, MealInfoPostDTO.class));
+        return ResponseEntity.ok(modelMapper.map(mealRecord, MealInfoPostDTO.class));
     }
 
     @DeleteMapping("/{userId}/meal-info/{mealInfoId}")

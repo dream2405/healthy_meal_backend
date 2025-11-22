@@ -13,12 +13,12 @@ import java.util.Objects;
 @Getter
 @Setter
 @Embeddable
-public class MealInfoFoodLinkId implements Serializable {
+public class MealRecordFoodLinkId implements Serializable {
     @Serial
     private static final long serialVersionUID = 515181595630036943L;
 
-    @Column(name = "meal_info_id", nullable = false)
-    private Long mealInfoId;
+    @Column(name = "mealrecord_id", nullable = false)
+    private Long mealRecordId;
 
     @Column(name = "food_id", nullable = false)
     private Long foodId;
@@ -27,14 +27,14 @@ public class MealInfoFoodLinkId implements Serializable {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o)) return false;
-        MealInfoFoodLinkId entity = (MealInfoFoodLinkId) o;
+        MealRecordFoodLinkId entity = (MealRecordFoodLinkId) o;
         return Objects.equals(this.foodId, entity.foodId) &&
-                Objects.equals(this.mealInfoId, entity.mealInfoId);
+                Objects.equals(this.mealRecordId, entity.mealRecordId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(foodId, mealInfoId);
+        return Objects.hash(foodId, mealRecordId);
     }
 
 }

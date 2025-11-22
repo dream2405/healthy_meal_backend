@@ -25,26 +25,65 @@ public class DietCriterion {
     private Character gender;
 
     @Column(name = "energy_kcal")
-    private Float energyKcal;
-
-    @Column(name = "protein_g")
-    private Float proteinG;
-
-    @Column(name = "fat_g")
-    private Float fatG;
+    private Double energyKcal;
 
     @Column(name = "carbohydrate_g")
-    private Float carbohydrateG;
+    private Double carbohydrateG;
 
-    @Column(name = "sugars_g")
-    private Float sugarsG;
+    @Column(name = "protein_g")
+    private Double proteinG;
+
+    @Column(name = "calcium_mg")
+    private Double calciumMg;
+
+    @Column(name = "kalium_mg")
+    private Double kaliumMg;
+
+    @Column(name = "iron_mg")
+    private Double ironMg;
+
+    @Column(name = "magnesium_mg")
+    private Double magnesiumMg;
+
+    @Column(name = "zinc_mg")
+    private Double zincMg;
 
     @Column(name = "cellulose_g")
-    private Float celluloseG;
+    private Double celluloseG;
 
-    @Column(name = "sodium_mg")
-    private Float sodiumMg;
+    @Column(name = "aminoacid_mg")
+    private Double aminoacidMg;
 
-    @Column(name = "cholesterol_mg")
-    private Float cholesterolMg;
+    @Column(name = "leucine_mg")
+    private Double leucineMg;
+
+    @Column(name = "methionine_mg")
+    private Double methionineMg;
+
+    @Column(name = "selenium_ug")
+    private Double seleniumUg;
+
+    @Column(name = "omega3_g")
+    private Double omega3G;
+
+    @Column(name = "vitaminA_ug")
+    private Double vitaminAUg;
+
+    @Column(name = "vitaminB_mg")
+    private Double vitaminBMg;
+
+    @Column(name = "folicacid_ug")
+    private Double folicacidUg;
+
+    @Column(name = "vitaminB12_mg")
+    private Double vitaminB12Mg;
+
+    @Column(name = "vitaminC_mg")
+    private Double vitaminCMg;
+
+    @Column(name = "vitaminD_ug")
+    private Double vitaminDUg;
+
+    @Column(name = "vitaminE_mg")
+    private Double vitaminEMg;
 }

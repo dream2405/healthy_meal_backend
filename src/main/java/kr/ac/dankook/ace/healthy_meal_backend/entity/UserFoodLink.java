@@ -26,4 +26,7 @@ public class UserFoodLink {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Column(name = "preference")
+    private Float preference;
+
 }
