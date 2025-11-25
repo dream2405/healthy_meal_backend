@@ -16,7 +16,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class UserService {
-
     private final UserRepository userRepository;
     private final DietCriterionRepository dietCriterionRepository;
 
@@ -28,7 +27,7 @@ public class UserService {
         this.userRepository = userRepository;
         this.dietCriterionRepository = dietCriterionRepository;
     }
-
+    /*
     public DietCriterionWeightDTO getDietCriterionWeight(String userId) {
         Optional<User> user = userRepository.findById(userId);
         if (user.isEmpty()) {
@@ -74,4 +73,6 @@ public class UserService {
         dietCriterion.setCholesterolMg(dietCriterion.getCholesterolMg()*(floatWeights.get(7).intValue()/100f));
         return dietCriterion;
     }
+
+     */
 }

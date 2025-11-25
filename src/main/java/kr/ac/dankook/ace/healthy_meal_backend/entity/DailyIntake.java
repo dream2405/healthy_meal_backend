@@ -6,6 +6,7 @@ import lombok.Setter;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+import java.lang.reflect.Field;
 import java.time.LocalDate;
 
 @Getter
@@ -91,6 +92,35 @@ public class DailyIntake {
     @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "user_id", nullable = false)
     private User user; // 일별 섭취 기록을 기록한 유저
+
+    public Double getValue(String fieldName) {
+        switch (fieldName) {
+            case "energy_kcal": return energyKcal;
+            case "carbohydrate_g": return carbohydrateG;
+            case "protein_g": return proteinG;
+            case "calcium_mg": return calciumMg;
+            case "kalium_mg": return kaliumMg;
+            case "iron_mg": return ironMg;
+            case "magnesium_mg": return magnesiumMg;
+            case "zinc_mg": return zincMg;
+            case "cellulose_g": return celluloseG;
+            case "aminoacid_mg": return aminoacidMg;
+            case "leucine_mg": return leucineMg;
+            case "methionine_mg": return methionineMg;
+            case "selenium_ug": return seleniumUg;
+            case "omega3_g": return omega3G;
+            case "vitaminA_ug": return vitaminAUg;
+            case "vitaminB_mg": return vitaminBMg;
+            case "folicacid_ug": return folicacidUg;
+            case "vitaminB12_ug": return vitaminB12Ug;
+            case "vitaminC_mg": return vitaminCMg;
+            case "vitaminD_ug": return vitaminDUg;
+            case "vitaminE_mg": return vitaminEMg;
+            default:
+                throw new IllegalArgumentException("Unknown field: " + fieldName);
+        }
+    }
+
 
     /*
     public void addMealIntake(double cal, double pro, double fat, double car, double sug, double cel, double sod, double cho) {

@@ -26,12 +26,10 @@ import java.util.NoSuchElementException;
 @RequestMapping("/foods")
 @Tag(name = "음식")
 public class FoodController {
-
     private final FoodRepository foodRepository;
     private final MealInfoRepository mealInfoRepository;
-    private final ModelMapper modelMapper;
 
-
+    /*
     @GetMapping()
     @Operation(summary = "이름, 대표음식명, 대분류명으로 음식들 가져오기",
             description = "모든 파라미터는 선택적", security = @SecurityRequirement(name = "BearerAuth"))
@@ -123,5 +121,5 @@ public class FoodController {
             return ResponseEntity.noContent().build();
         }
     }
-
+    */
 }

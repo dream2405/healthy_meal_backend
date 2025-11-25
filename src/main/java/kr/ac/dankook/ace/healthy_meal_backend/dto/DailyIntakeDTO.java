@@ -2,13 +2,11 @@ package kr.ac.dankook.ace.healthy_meal_backend.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.util.List;
 
-@NoArgsConstructor
 @AllArgsConstructor
 @Data
-public class NutrientValuesDTO {
-    private List<NutrientValueElement> nutrientValues;
+public class DailyIntakeDTO {
+    private List<DailyIntakeElement> dailyintakes;
 }

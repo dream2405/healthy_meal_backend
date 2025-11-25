@@ -1,72 +1,132 @@
 package kr.ac.dankook.ace.healthy_meal_backend.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import kr.ac.dankook.ace.healthy_meal_backend.repository.DailyIntakeRepository;
-import kr.ac.dankook.ace.healthy_meal_backend.repository.FoodRepository;
-import kr.ac.dankook.ace.healthy_meal_backend.repository.MealInfoRepository;
-import kr.ac.dankook.ace.healthy_meal_backend.repository.UserRepository;
+import kr.ac.dankook.ace.healthy_meal_backend.dto.*;
+import kr.ac.dankook.ace.healthy_meal_backend.repository.*;
+import kr.ac.dankook.ace.healthy_meal_backend.security.CustomUserDetails;
 import kr.ac.dankook.ace.healthy_meal_backend.service.MealInfoFoodAnalyzeService;
 import kr.ac.dankook.ace.healthy_meal_backend.service.NutrientIntakeService;
+import kr.ac.dankook.ace.healthy_meal_backend.service.NutritionService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/users")
-@Tag(name = "유저")
-public class UserController {
-
+@RequestMapping("/users/{userId}")
+@Tag(name = "영양소 섭취현황")
+public class IntakeController {
     private final UserRepository userRepository;
     private final MealInfoRepository mealInfoRepository;
     private final DailyIntakeRepository dailyIntakeRepository;
+    private final NutritionService nutritionService;
     private final FoodRepository foodRepository;
     private final NutrientIntakeService nutrientIntakeService;
 
-    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
+    private static final Logger logger = LoggerFactory.getLogger(IntakeController.class);
     private final MealInfoFoodAnalyzeService mealInfoFoodAnalyzeService;
-    /*
-    @GetMapping("/{userId}")
-    @Operation(summary = "주어진 ID를 가진 특정 유저 가져오기", security = @SecurityRequirement(name = "BearerAuth"))
-    public ResponseEntity<UserGetDTO> getUser(@PathVariable String userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다: " + userId));
-        UserGetDTO userGetDTO = modelMapper.map(user, UserGetDTO.class);
-        return ResponseEntity.ok().body(userGetDTO);
-    }
-    */
 
-    /*
-
-    @DeleteMapping("/{userId}")
-    @Operation(summary = "주어진 ID를 가진 유저 삭제", security = @SecurityRequirement(name = "BearerAuth"))
-    public ResponseEntity<Object> deleteUser(@PathVariable String userId) {
-        if (!userRepository.existsById(userId)) {
-            throw new NoSuchElementException("사용자를 찾을 수 없습니다: " + userId);
-        }
-        userRepository.deleteById(userId);
-        return ResponseEntity.noContent().build();
-    }
-
-    @GetMapping("/{userId}/meal-info")
-    @Operation(summary = "주어진 ID의 유저가 기록한 모든 식단 정보 가져오기", security = @SecurityRequirement(name = "BearerAuth"))
-    public ResponseEntity<List<MealRecordDTO>> getMealInfo(
+    @GetMapping("/daily-intake")
+    @Operation(summary = "사용자 영양소 섭취현황 조회", security = @SecurityRequirement(name = "BearerAuth"))
+    public ResponseEntity<NutrientValuesDTO> getDailyIntake(
             @PathVariable String userId,
             @RequestParam(value = "date", required = false)
-            @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date
+            @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date,
+            @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        if (!userRepository.existsById(userId)) {
-            throw new NoSuchElementException("사용자를 찾을 수 없습니다: " + userId);
+        String authenticatedUserId = userDetails.getUsername();
+        if (!authenticatedUserId.equals(userId)) {
+            throw new AccessDeniedException("해당 사용자에 대한 접근 권한이 없습니다");
         }
-        List<MealRecord> mealRecords = mealInfoRepository.findByUserIdAndCreatedDate(userId, date);
-        List<MealRecordDTO> mealRecordDTOS = mealRecords.stream()
-                .map(mealInfo -> modelMapper.map(mealInfo, MealRecordDTO.class)).toList();
-        return ResponseEntity.ok().body(mealRecordDTOS);
+        return ResponseEntity.ok().body(new NutrientValuesDTO(nutrientIntakeService.getDailyIntake(userId, date)));
     }
 
+    @GetMapping("/daily-intakes")
+    @Operation(summary = "사용자 영양소 섭취현황 기간단위 조회", security = @SecurityRequirement(name = "BearerAuth"))
+    public ResponseEntity<DailyIntakeDTO> getDailyIntakes(
+            @PathVariable String userId,
+            @RequestParam(value = "start_date", required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @RequestParam(value = "end_date", required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        String authenticatedUserId = userDetails.getUsername();
+        if (!authenticatedUserId.equals(userId)) {
+            throw new AccessDeniedException("해당 사용자에 대한 접근 권한이 없습니다");
+        }
+        List<DailyIntakeElement> dailyIntakeElements = new ArrayList<>();
+        for(LocalDate date : getDateRange(startDate, endDate)) {
+            DailyIntakeElement dailyIntakeElement = new DailyIntakeElement();
+            dailyIntakeElement.setDate(date);
+            dailyIntakeElement.setNutrientValues(nutrientIntakeService.getDailyIntake(userId, date));
+            dailyIntakeElements.add(dailyIntakeElement);
+        }
+        return ResponseEntity.ok().body(new DailyIntakeDTO(dailyIntakeElements));
+    }
+    private List<LocalDate> getDateRange(LocalDate startDate, LocalDate endDate) {
+        if (startDate == null && endDate == null) {
+            return Collections.emptyList();
+        }
+        if (startDate == null) {
+            return List.of(endDate);
+        }
+        if (endDate == null) {
+            return List.of(startDate);
+        }
+        return startDate.datesUntil(endDate.plusDays(1)).collect(Collectors.toList());
+    }
 
+    @GetMapping("/daily-intake/score")
+    @Operation(summary = "사용자 영양소 점수 조회", security = @SecurityRequirement(name = "BearerAuth"))
+    public ResponseEntity<NutrientValuesDTO> getDailyIntakeScore(
+            @PathVariable String userId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        String authenticatedUserId = userDetails.getUsername();
+        if (!authenticatedUserId.equals(userId)) {
+            throw new AccessDeniedException("해당 사용자에 대한 접근 권한이 없습니다");
+        }
+        return ResponseEntity.ok().body(nutrientIntakeService.calcDailyIntakeScore(userId, nutritionService.getDietCriterion(userId).getNutrientValues()));
+    }
+
+    @GetMapping("/daily-intake/scores")
+    @Operation(summary = "사용자 영양소 점수 기간단위 조회", security = @SecurityRequirement(name = "BearerAuth"))
+    public ResponseEntity<DailyScoresDTO> getDailyIntakeScores(
+            @PathVariable String userId,
+            @RequestParam(value = "start_date", required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @RequestParam(value = "end_date", required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        String authenticatedUserId = userDetails.getUsername();
+        if (!authenticatedUserId.equals(userId)) {
+            throw new AccessDeniedException("해당 사용자에 대한 접근 권한이 없습니다");
+        }
+        List<DailyScoreElement> dailyScoreElements = new ArrayList<>();
+        for(LocalDate date : getDateRange(startDate, endDate)) {
+            DailyScoreElement dailyScoreElement = new DailyScoreElement();
+            dailyScoreElement.setDate(date);
+            dailyScoreElement.setDailyscore(dailyIntakeRepository.findByUserIdAndDay(userId, date).getDailyscore());
+            dailyScoreElements.add(dailyScoreElement);
+        }
+        return ResponseEntity.ok().body(new DailyScoresDTO(dailyScoreElements));
+    }
+
+    /*
     @PostMapping(value = "/{userId}/meal-info", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "주어진 정보로 주어진 ID의 유저가 식단정보 기록", security = @SecurityRequirement(name = "BearerAuth"))
     @Transactional
@@ -130,7 +190,6 @@ public class UserController {
         return ResponseEntity.ok(mealRecordDTO);
     }
 
-
     @GetMapping("/{userId}/meal-info/{mealInfoId}")
     @Operation(summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보 가져오기", security = @SecurityRequirement(name = "BearerAuth"))
     public ResponseEntity<MealRecordDTO> getMealInfo(
@@ -158,14 +217,17 @@ public class UserController {
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/{userId}/daily-intake/{dailyIntakeId}")
-    @Operation(summary = "주어진 ID의 유저의 주어진 ID의 일별섭취기록 가져오기", security = @SecurityRequirement(name = "BearerAuth"))
-    public ResponseEntity<DailyIntakeDTO> getDailyIntake(
-            @PathVariable String userId,
-            @PathVariable Integer dailyIntakeId) {
-        DailyIntake dailyIntake = dailyIntakeRepository.findById(dailyIntakeId)
-                .orElseThrow(() -> new NoSuchElementException("유저 " + userId + "의 일별섭취기록을 찾을 수 없습니다: " + dailyIntakeId));
-        return ResponseEntity.ok().body(modelMapper.map(dailyIntake, DailyIntakeDTO.class));
+    @GetMapping("/{userId}/daily-intake")
+    @Operation(summary = "주어진 ID의 유저의 모든 일별섭취기록 가져오기", security = @SecurityRequirement(name = "BearerAuth"))
+    public ResponseEntity<List<DailyIntakeDTO>> getDailyIntakeByUserId(@PathVariable String userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new NoSuchElementException("사용자를 찾을 수 없습니다: " + userId);
+        }
+        List<DailyIntake> dailyIntakes = nutrientIntakeService.getDailyIntakes(userId);
+        List<DailyIntakeDTO> dailyIntakeDTOs = dailyIntakes.stream()
+                .map(dailyIntake -> modelMapper.map(dailyIntake, DailyIntakeDTO.class)).toList();
+
+        return ResponseEntity.ok(dailyIntakeDTOs);
     }
 
     @DeleteMapping("/{userId}/daily-intake/{dailyIntakeId}")
@@ -176,6 +238,6 @@ public class UserController {
         }
         dailyIntakeRepository.deleteById(dailyIntakeId);
         return ResponseEntity.noContent().build();
-    }
-    */
+    }*/
+
 }

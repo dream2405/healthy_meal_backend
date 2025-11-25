@@ -54,6 +54,8 @@ public class MealInfoFoodAnalyzeService {
         this.imagePreprocessorService = imagePreprocessorService;
     }
 
+    /*
+
     @Transactional
     public MealRecord createMealInfo(String imgPath, User user) {
         MealRecord mealRecord = new MealRecord();
@@ -83,7 +85,7 @@ public class MealInfoFoodAnalyzeService {
                 식별되지않음""";
 
      */
-
+    /*
     public List<String> gptAnalyzeImage(String base64Image) {
         long start = System.currentTimeMillis();
 
@@ -161,7 +163,7 @@ public class MealInfoFoodAnalyzeService {
         /*for (String foodName : foodResult) {
             foodList.addAll(foodRepository.findAllByName(foodName));
         }*/
-
+    /*
         long end = System.currentTimeMillis();
         logger.info("GPT 사진분석 소요시간 : {} s", (end - start)/1000);
 
@@ -310,7 +312,7 @@ public class MealInfoFoodAnalyzeService {
                                                 "type", "input_image",
                                                 "image_url", "data:image/jpeg;base64," + base64Image
                                                 //"image_url", "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8N3x8cGl6emF8ZW58MHx8MHx8fDA%3D"
-                                        )*/
+                                        )*//*
                                 )
                         )
                 )
@@ -376,7 +378,7 @@ public class MealInfoFoodAnalyzeService {
                                                 "type", "input_image",
                                                 "image_url", "data:image/jpeg;base64," + base64Image
                                                 //"image_url", "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8N3x8cGl6emF8ZW58MHx8MHx8fDA%3D"
-                                        )*/
+                                        )*//*
                                 )
                         )
                 )
@@ -638,7 +640,7 @@ public class MealInfoFoodAnalyzeService {
         mealInfo.setIntakeAmount(amount);
         mealInfo.setDiary(diary);
         return mealInfoRepository.save(mealInfo);
-    }*/
+    }*//*
 
     public MealRecord validateMealInfoId(Long mealInfoId, String userId) {
         Optional<MealRecord> mealInfo = mealInfoRepository.findById(mealInfoId);
@@ -714,7 +716,7 @@ public class MealInfoFoodAnalyzeService {
         } catch (Exception e) {
             return "해당없음";
         }
-    }*/
+    }*//*
     private String findClosestMatch(String aiResponse, List<String> categories) {
         String lowerResponse = aiResponse.toLowerCase();
 
@@ -733,4 +735,5 @@ public class MealInfoFoodAnalyzeService {
         factory.setReadTimeout(Duration.ofMinutes(5));      // 읽기 타임아웃: 5분
         return factory;
     }
+    */
 }

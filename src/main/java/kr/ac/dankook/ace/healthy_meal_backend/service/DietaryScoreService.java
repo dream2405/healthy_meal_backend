@@ -17,7 +17,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class DietaryScoreService {
-
+    /*
     private final DailyIntakeRepository dailyIntakeRepository;
     private final UserService userService;
 
@@ -81,4 +81,5 @@ public class DietaryScoreService {
         double score = 100.0 - penalty;
         return Math.max(0, score);
     }
+     */
 }

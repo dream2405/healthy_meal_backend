@@ -20,12 +20,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.NoSuchElementException;
 
 @RestController
-@RequiredArgsConstructor
+@RequiredArgsConstructor // 의존성주입
 @RequestMapping("/users/{userId}")
-@Tag(name = "식단기준")
+@Tag(name = "영양소 섭취모델")
 public class NutritionController {
-
-    private final UserService userService;
     private final UserRepository userRepository;
     private final NutritionService nutritionService;
 

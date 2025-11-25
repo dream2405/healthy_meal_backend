@@ -9,11 +9,11 @@ import java.util.List;
 
 @Repository
 public interface DailyIntakeRepository extends CrudRepository<DailyIntake, Integer> {
-    List<DailyIntake> findByUserIdAndDay(String userId, LocalDate day);
+    DailyIntake findByUserIdAndDay(String userId, LocalDate day);
 
     boolean existsByUserIdAndId(String userId, Integer id);
 
     List<DailyIntake> findByUserId(String userId);
 
-    List<DailyIntake> findByDay(LocalDate day);
+    DailyIntake findByDay(LocalDate day);
 }

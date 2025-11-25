@@ -1,35 +1,78 @@
 package kr.ac.dankook.ace.healthy_meal_backend.service;
 
 import jakarta.transaction.Transactional;
+import kr.ac.dankook.ace.healthy_meal_backend.dto.DailyScoreElement;
+import kr.ac.dankook.ace.healthy_meal_backend.dto.DailyScoresDTO;
+import kr.ac.dankook.ace.healthy_meal_backend.dto.NutrientValueElement;
+import kr.ac.dankook.ace.healthy_meal_backend.dto.NutrientValuesDTO;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.*;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.DailyIntakeRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.MealInfoRepository;
+import kr.ac.dankook.ace.healthy_meal_backend.repository.NutrientWeightRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 
+@RequiredArgsConstructor
 @Service
 public class NutrientIntakeService {
 
     private final DailyIntakeRepository dailyIntakeRepository;
-    private final MealInfoRepository mealInfoRepository;
+    private final NutrientWeightRepository nutrientWeightRepository;
 
-    @Autowired
-    public NutrientIntakeService (
-        DailyIntakeRepository dailyIntakeRepository,
-        MealInfoRepository mealInfoRepository
-    ) {
-        this.dailyIntakeRepository = dailyIntakeRepository;
-        this.mealInfoRepository = mealInfoRepository;
+    public List<NutrientValueElement> getDailyIntake(String userId, LocalDate date) {
+        List<NutrientValueElement> nutrientValueElements = new ArrayList<>();
+        List<NutrientWeight> nutrientWeights = nutrientWeightRepository.findByUserId(userId);
+        DailyIntake dailyIntake = dailyIntakeRepository.findByUserIdAndDay(userId, date);
+        for (NutrientWeight nutrientWeight : nutrientWeights) {
+            NutrientValueElement nutrientValueElement = new NutrientValueElement(nutrientWeight.getNutrientName(), dailyIntake.getValue(nutrientWeight.getNutrientName()));
+            nutrientValueElements.add(nutrientValueElement);
+        }
+        return nutrientValueElements;
     }
 
-    public List<DailyIntake> getDailyIntakes(String userId) {
-        return dailyIntakeRepository.findByUserId(userId);
+    @Transactional
+    public NutrientValuesDTO calcDailyIntakeScore(String userId, List<NutrientValueElement> nutrionCriterionElements) {
+        int totalScore = 0;
+        List<NutrientValueElement> nutrientScoreElements = new ArrayList<>();
+        List<NutrientWeight> nutrientWeights = nutrientWeightRepository.findByUserId(userId);
+        Map<String, NutrientWeight> weightMap = nutrientWeights.stream().collect(Collectors.toMap(
+                NutrientWeight::getNutrientName,
+                w -> w
+        ));
+        DailyIntake dailyIntake = dailyIntakeRepository.findByUserIdAndDay(userId, LocalDate.now());
+        for(NutrientValueElement nutrionCriterion : nutrionCriterionElements) {
+            String nutrientName = nutrionCriterion.getNutrientName();
+            int score = calculateSingleScore(dailyIntake.getValue(nutrientName), (nutrionCriterion.getValue() * weightMap.get(nutrientName).getWeight()), 1.0);
+            nutrientScoreElements.add(new NutrientValueElement(nutrientName, (double)score));
+            totalScore += score;
+        }
+        dailyIntake.setDailyscore(totalScore);
+        dailyIntakeRepository.save(dailyIntake);
+        return new NutrientValuesDTO(nutrientScoreElements);
+    }
+    private int calculateSingleScore(double actual, double target, double sigmaRatio) {
+        if (target <= 0 || Double.isNaN(actual) || Double.isNaN(target)) return 0;
+
+        double diff = actual - target;
+        double sigma = Math.abs(target) * sigmaRatio;
+        if (sigma == 0) return (actual == target) ? 100 : 0;
+
+        double normalized = diff / sigma;
+        double score = 100.0 * Math.exp(-0.5 * normalized * normalized);
+
+        return (int) Math.round(Math.max(0, Math.min(100, score)));
     }
 
+
+    /*
     @Transactional
     public void applyInsertDailyIntake(MealRecord mealRecord, User user) {
         LocalDate now = LocalDate.now();
@@ -46,6 +89,7 @@ public class NutrientIntakeService {
         dailyIntake.setDay(now);
         return dailyIntake;
     }
+
     private void addFoodNutrition(DailyIntake dailyIntake, MealRecordFoodLink foodLink) {
         try {
             Food food = foodLink.getFood();
@@ -107,5 +151,5 @@ public class NutrientIntakeService {
             e.printStackTrace();
             throw e;
         }
-    }
+    }*/
 }

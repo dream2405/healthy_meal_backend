@@ -9,27 +9,19 @@ import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.DietCriterionRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.NutrientWeightRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.lang.reflect.Field;
 import java.util.*;
 
+@RequiredArgsConstructor
 @Service
 public class NutritionService {
     private final UserRepository userRepository;
     private final DietCriterionRepository dietCriterionRepository;
     private final NutrientWeightRepository nutrientWeightRepository;
-    @Autowired
-    public NutritionService(
-            UserRepository userRepository,
-            DietCriterionRepository dietCriterionRepository,
-            NutrientWeightRepository nutrientWeightRepository
-    ) {
-        this.userRepository = userRepository;
-        this.dietCriterionRepository = dietCriterionRepository;
-        this.nutrientWeightRepository = nutrientWeightRepository;
-    }
 
     public NutrientValuesDTO getDietCriterion(String userId) {
         User user = userRepository.findById(userId).orElseThrow(() -> new NoSuchElementException("해당하는 사용자가 없음"));
