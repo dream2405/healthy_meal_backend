@@ -80,8 +80,8 @@ public class Food {
     @Column(name = "folicacid_ug")
     private Double folicacidUg;
 
-    @Column(name = "vitaminB12_mg")
-    private Double vitaminB12Mg;
+    @Column(name = "vitaminB12_ug")
+    private Double vitaminB12Ug;
 
     @Column(name = "vitaminC_mg")
     private Double vitaminCMg;

@@ -7,7 +7,6 @@ import jakarta.transaction.Transactional;
 import kr.ac.dankook.ace.healthy_meal_backend.action.MealInfoAction;
 import kr.ac.dankook.ace.healthy_meal_backend.dto.*;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.DailyIntake;
-import kr.ac.dankook.ace.healthy_meal_backend.entity.Food;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.MealRecord;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.DailyIntakeRepository;
@@ -21,11 +20,8 @@ import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -46,7 +42,7 @@ public class UserController {
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
     private final MealInfoFoodAnalyzeService mealInfoFoodAnalyzeService;
-
+    /*
     @GetMapping("/{userId}")
     @Operation(summary = "주어진 ID를 가진 특정 유저 가져오기", security = @SecurityRequirement(name = "BearerAuth"))
     public ResponseEntity<UserGetDTO> getUser(@PathVariable String userId) {
@@ -55,6 +51,7 @@ public class UserController {
         UserGetDTO userGetDTO = modelMapper.map(user, UserGetDTO.class);
         return ResponseEntity.ok().body(userGetDTO);
     }
+    */
 
     @DeleteMapping("/{userId}")
     @Operation(summary = "주어진 ID를 가진 유저 삭제", security = @SecurityRequirement(name = "BearerAuth"))
@@ -68,7 +65,7 @@ public class UserController {
 
     @GetMapping("/{userId}/meal-info")
     @Operation(summary = "주어진 ID의 유저가 기록한 모든 식단 정보 가져오기", security = @SecurityRequirement(name = "BearerAuth"))
-    public ResponseEntity<List<MealInfoPostDTO>> getMealInfo(
+    public ResponseEntity<List<MealRecordDTO>> getMealInfo(
             @PathVariable String userId,
             @RequestParam(value = "date", required = false)
             @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date
@@ -77,15 +74,16 @@ public class UserController {
             throw new NoSuchElementException("사용자를 찾을 수 없습니다: " + userId);
         }
         List<MealRecord> mealRecords = mealInfoRepository.findByUserIdAndCreatedDate(userId, date);
-        List<MealInfoPostDTO> mealInfoPostDTOs = mealRecords.stream()
-                .map(mealInfo -> modelMapper.map(mealInfo, MealInfoPostDTO.class)).toList();
-        return ResponseEntity.ok().body(mealInfoPostDTOs);
+        List<MealRecordDTO> mealRecordDTOS = mealRecords.stream()
+                .map(mealInfo -> modelMapper.map(mealInfo, MealRecordDTO.class)).toList();
+        return ResponseEntity.ok().body(mealRecordDTOS);
     }
 
+    /*
     @PostMapping(value = "/{userId}/meal-info", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "주어진 정보로 주어진 ID의 유저가 식단정보 기록", security = @SecurityRequirement(name = "BearerAuth"))
     @Transactional
-    public ResponseEntity<MealInfoPostDTO> createMealInfo(
+    public ResponseEntity<MealRecordDTO> createMealInfo(
             @PathVariable String userId,
             @RequestPart("img") MultipartFile file
     ) {
@@ -93,9 +91,9 @@ public class UserController {
                 .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다: " + userId));
         logger.info("식단사진저장 <시작>");
         MealRecord mealRecord = mealInfoAction.createMealInfo(file, user);
-        MealInfoPostDTO mealInfoPostDTO = modelMapper.map(mealRecord, MealInfoPostDTO.class);
+        MealRecordDTO mealRecordDTO = modelMapper.map(mealRecord, MealRecordDTO.class);
         logger.info("식단사진저장 <완료>");
-        return ResponseEntity.status(HttpStatus.CREATED).body(mealInfoPostDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(mealRecordDTO);
     }
 
     @PostMapping("/{userId}/meal-info/{mealInfoId}/analyze")
@@ -103,18 +101,18 @@ public class UserController {
             summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보를 gpt가 분석",
             description = "식단 정보와 음식을 연결", security = @SecurityRequirement(name = "BearerAuth"))
     @Transactional
-    public ResponseEntity<FoodResponseDTO> analyzeMealInfo(@PathVariable String userId,
-                                                        @PathVariable Long mealInfoId) {
+    public ResponseEntity<FoodElement> analyzeMealInfo(@PathVariable String userId,
+                                                       @PathVariable Long mealInfoId) {
         List<String> foodResult = mealInfoAction.analyzeMealInfo(mealInfoId, userId);
         List<Integer> foodWeight = mealInfoFoodAnalyzeService.getFoodWeight(foodResult);
-        FoodResponseDTO foodResponseDTO = new FoodResponseDTO(foodResult, foodWeight);
-        return ResponseEntity.status(HttpStatus.CREATED).body(foodResponseDTO);
+        FoodElement food = new FoodElement(foodResult, foodWeight);
+        return ResponseEntity.status(HttpStatus.CREATED).body(food);
     }
 
     @PatchMapping("/{userId}/meal-info/{mealInfoId}")
     @Operation(summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보 기록/수정", security = @SecurityRequirement(name = "BearerAuth"))
     @Transactional
-    public ResponseEntity<MealInfoPostDTO> updateMealInfo(
+    public ResponseEntity<MealRecordDTO> updateMealInfo(
             @PathVariable String userId, @PathVariable Long mealInfoId,
             @RequestBody UpdateMealInfoRequestDTO updateMealInfoRequestDTO) {
         User user = userRepository.findById(userId)
@@ -131,7 +129,7 @@ public class UserController {
 
         for(var i=0; i < updateMealInfoRequestDTO.getConfirmedFoods().size(); i++) {
             String foodName = updateMealInfoRequestDTO.getConfirmedFoods().get(i);
-            Food food = foodRepository.findFirstByName(foodName)
+            kr.ac.dankook.ace.healthy_meal_backend.entity.Food food = foodRepository.findFirstByName(foodName)
                     .orElseThrow(() -> new IllegalArgumentException(foodName + " 에 해당하는 음식이 없음"));
             mealRecord.addFoodLink(food, updateMealInfoRequestDTO.getIntakeAmounts().get(i));
         }
@@ -141,13 +139,14 @@ public class UserController {
         // 섭취 식단에 따른 영양소 섭취량 계산 -> DailyIntake Update
         nutrientIntakeService.applyInsertDailyIntake(mealRecord, user);
 
-        MealInfoPostDTO mealInfoPostDTO = modelMapper.map(mealRecord, MealInfoPostDTO.class);
-        return ResponseEntity.ok(mealInfoPostDTO);
+        MealRecordDTO mealRecordDTO = modelMapper.map(mealRecord, MealRecordDTO.class);
+        return ResponseEntity.ok(mealRecordDTO);
     }
+     */
 
     @GetMapping("/{userId}/meal-info/{mealInfoId}")
     @Operation(summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보 가져오기", security = @SecurityRequirement(name = "BearerAuth"))
-    public ResponseEntity<MealInfoPostDTO> getMealInfo(
+    public ResponseEntity<MealRecordDTO> getMealInfo(
             @PathVariable String userId, @PathVariable Long mealInfoId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다: " + userId));
@@ -155,7 +154,7 @@ public class UserController {
                 .filter(mf -> Objects.equals(mf.getId(), mealInfoId))
                 .findFirst()
                 .orElseThrow(() -> new NoSuchElementException("식단 정보를 찾을 수 없습니다: " + mealInfoId));
-        return ResponseEntity.ok(modelMapper.map(mealRecord, MealInfoPostDTO.class));
+        return ResponseEntity.ok(modelMapper.map(mealRecord, MealRecordDTO.class));
     }
 
     @DeleteMapping("/{userId}/meal-info/{mealInfoId}")

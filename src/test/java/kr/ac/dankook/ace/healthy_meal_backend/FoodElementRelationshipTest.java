@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @DataJpaTest
 @Transactional
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-public class FoodRelationshipTest {
+public class FoodElementRelationshipTest {
 
     @Autowired
     private TestEntityManager entityManager;

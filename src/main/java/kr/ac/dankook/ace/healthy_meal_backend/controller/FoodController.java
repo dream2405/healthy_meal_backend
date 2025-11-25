@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
-import kr.ac.dankook.ace.healthy_meal_backend.dto.FoodDTO;
+import kr.ac.dankook.ace.healthy_meal_backend.dto.NutrientValuesDTO;
 import kr.ac.dankook.ace.healthy_meal_backend.dto.FoodPostDTO;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.Food;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.MealRecord;
@@ -74,12 +74,12 @@ public class FoodController {
     @Operation(summary = "음식 추가하기",
             description = "모든 파라미터는 필수", security = @SecurityRequirement(name = "BearerAuth"))
     @Transactional
-    public ResponseEntity<FoodDTO> createFood(@RequestBody @Valid FoodPostDTO foodPostDTO) {
+    public ResponseEntity<NutrientValuesDTO> createFood(@RequestBody @Valid FoodPostDTO foodPostDTO) {
         Food food = modelMapper.map(foodPostDTO, Food.class);
         food = foodRepository.save(food);
-        FoodDTO foodDTO = modelMapper.map(food, FoodDTO.class);
+        NutrientValuesDTO nutrientValuesDTO = modelMapper.map(food, NutrientValuesDTO.class);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(foodDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(nutrientValuesDTO);
     }
 
     @PutMapping("/{foodId}/meal-info/{mealInfoId}")

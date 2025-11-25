@@ -5,9 +5,11 @@ import lombok.Data;
 import java.time.LocalDate;
 
 @Data
-public class UserGetDTO {
+public class UserDTO {
     private String id;
-    private String hashedPassword;
+    private String email;
     private LocalDate birthday;
     private Character gender;
+    private String modelname;
+    private Float nutrientLevel;
 }

@@ -1,7 +1,6 @@
 package kr.ac.dankook.ace.healthy_meal_backend.service;
 
 import jakarta.transaction.Transactional;
-import kr.ac.dankook.ace.healthy_meal_backend.dto.DietCriterionWeightDTO;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.DietCriterion;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.DietCriterionRepository;

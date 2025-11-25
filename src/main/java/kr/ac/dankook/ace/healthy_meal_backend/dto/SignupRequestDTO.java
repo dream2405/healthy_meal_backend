@@ -9,9 +9,10 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 
 @Data
 @NoArgsConstructor
-public class UserPostDTO {
+public class SignupRequestDTO {
     private String id;
-    private String hashedPassword;
+    private String email;
+    private String password;
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate birthday;
     private String gender;

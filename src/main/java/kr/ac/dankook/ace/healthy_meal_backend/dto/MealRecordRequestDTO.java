@@ -6,11 +6,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
-public class MealInfoPostDTO {
+public class MealRecordRequestDTO {
     private Long id;
+    private String mealName;
     private String imgPath;
+    private LocalDateTime takenAt;
+    private List<String> confirmedFoods;
+    private List<Double> intakeAmounts;
     private String diary;
-    private LocalDateTime createdAt;
-    private LocalDateTime lastModifiedAt;
-    private List<MealInfoFoodLinkDTO> mealInfoFoodLinks;
 }

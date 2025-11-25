@@ -5,9 +5,8 @@ import lombok.Data;
 
 import java.util.List;
 
-@Data
 @AllArgsConstructor
-public class FoodResponseDTO {
-    private List<String> foodResult;
-    private List<Integer> foodWeight;
+@Data
+public class ResultMessageResponseDTO {
+    private String resultMessage;
 }

@@ -1,6 +1,6 @@
 package kr.ac.dankook.ace.healthy_meal_backend.config;
 
-import kr.ac.dankook.ace.healthy_meal_backend.dto.FoodDTO;
+import kr.ac.dankook.ace.healthy_meal_backend.dto.NutrientValuesDTO;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.Food;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.convention.MatchingStrategies;
@@ -15,8 +15,8 @@ public class AppConfig {
         ModelMapper mapper = new ModelMapper();
         mapper.getConfiguration()
                 .setMatchingStrategy(MatchingStrategies.STANDARD);
-        mapper.createTypeMap(Food.class, FoodDTO.class)
-                .addMappings(mapping -> mapping.map(Food::getId, FoodDTO::setId));
+        mapper.createTypeMap(Food.class, NutrientValuesDTO.class)
+                .addMappings(mapping -> mapping.map(Food::getId, NutrientValuesDTO::setId));
         return mapper;
     }
 

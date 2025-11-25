@@ -14,13 +14,13 @@ public class NutrientWeight {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
-    private Integer id;
+    private Long id;
 
     @Column(name = "nutrient_name")
     private String nutrientName;
 
     @Column(name = "weight")
-    private Float weight;
+    private Double weight;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
