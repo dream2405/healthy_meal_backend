@@ -122,44 +122,75 @@ public class DailyIntake {
     }
 
 
-    /*
-    public void addMealIntake(double cal, double pro, double fat, double car, double sug, double cel, double sod, double cho) {
-        this.energyKcal += cal;
-        this.proteinG += pro;
-        this.fatG += fat;
-        this.carbohydrateG += car;
-        this.sugarsG += sug;
-        this.celluloseG += cel;
-        this.sodiumMg += sod;
-        this.cholesterolMg += cho;
+
+    public void addMealIntake(double energyKcal, double carbohydrateG, double proteinG,
+                              double calciumMg, double kaliumMg, double ironMg, double magnesiumMg, double zincMg,
+                              double celluloseG, double aminoacidMg, double leucineMg, double methionineMg,
+                              double seleniumUg, double omega3G, double vitaminAUg, double vitaminBMg,
+                              double folicacidUg, double vitaminB12Ug, double vitaminCMg, double vitaminDUg, double vitaminEMg) {
+
+        this.energyKcal = safeAdd(this.energyKcal, energyKcal);
+        this.carbohydrateG = safeAdd(this.carbohydrateG, carbohydrateG);
+        this.proteinG = safeAdd(this.proteinG, proteinG);
+        this.calciumMg = safeAdd(this.calciumMg, calciumMg);
+        this.kaliumMg = safeAdd(this.kaliumMg, kaliumMg);
+        this.ironMg = safeAdd(this.ironMg, ironMg);
+        this.magnesiumMg = safeAdd(this.magnesiumMg, magnesiumMg);
+        this.zincMg = safeAdd(this.zincMg, zincMg);
+        this.celluloseG = safeAdd(this.celluloseG, celluloseG);
+        this.aminoacidMg = safeAdd(this.aminoacidMg, aminoacidMg);
+        this.leucineMg = safeAdd(this.leucineMg, leucineMg);
+        this.methionineMg = safeAdd(this.methionineMg, methionineMg);
+        this.seleniumUg = safeAdd(this.seleniumUg, seleniumUg);
+        this.omega3G = safeAdd(this.omega3G, omega3G);
+        this.vitaminAUg = safeAdd(this.vitaminAUg, vitaminAUg);
+        this.vitaminBMg = safeAdd(this.vitaminBMg, vitaminBMg);
+        this.folicacidUg = safeAdd(this.folicacidUg, folicacidUg);
+        this.vitaminB12Ug = safeAdd(this.vitaminB12Ug, vitaminB12Ug);
+        this.vitaminCMg = safeAdd(this.vitaminCMg, vitaminCMg);
+        this.vitaminDUg = safeAdd(this.vitaminDUg, vitaminDUg);
+        this.vitaminEMg = safeAdd(this.vitaminEMg, vitaminEMg);
     }
 
-    public void deleteMealIntake(double cal, double pro, double fat, double car, double sug, double cel, double sod, double cho) {
-        if (this.energyKcal > 0) {
-            this.energyKcal -= cal;
-        }
-        if (this.proteinG > 0) {
-            this.proteinG -= pro;
-        }
-        if (this.fatG > 0) {
-            this.fatG -= fat;
-        }
-        if (this.carbohydrateG > 0) {
-            this.carbohydrateG -= car;
-        }
-        if (this.sugarsG > 0) {
-            this.sugarsG -= sug;
-        }
-        if (this.celluloseG > 0) {
-            this.celluloseG -= cel;
-        }
-        if (this.sodiumMg > 0) {
-            this.sodiumMg -= sod;
-        }
-        if (this.cholesterolMg > 0) {
-            this.cholesterolMg -= cho;
-        }
+    /**
+     * 모든 영양소 섭취량 삭제 (0 미만으로 내려가지 않음)
+     */
+    public void deleteMealIntake(double energyKcal, double carbohydrateG, double proteinG,
+                                 double calciumMg, double kaliumMg, double ironMg, double magnesiumMg, double zincMg,
+                                 double celluloseG, double aminoacidMg, double leucineMg, double methionineMg,
+                                 double seleniumUg, double omega3G, double vitaminAUg, double vitaminBMg,
+                                 double folicacidUg, double vitaminB12Ug, double vitaminCMg, double vitaminDUg, double vitaminEMg) {
+        this.energyKcal = safeSub(this.energyKcal, energyKcal);
+        this.carbohydrateG = safeSub(this.carbohydrateG, carbohydrateG);
+        this.proteinG = safeSub(this.proteinG, proteinG);
+        this.calciumMg = safeSub(this.calciumMg, calciumMg);
+        this.kaliumMg = safeSub(this.kaliumMg, kaliumMg);
+        this.ironMg = safeSub(this.ironMg, ironMg);
+        this.magnesiumMg = safeSub(this.magnesiumMg, magnesiumMg);
+        this.zincMg = safeSub(this.zincMg, zincMg);
+        this.celluloseG = safeSub(this.celluloseG, celluloseG);
+        this.aminoacidMg = safeSub(this.aminoacidMg, aminoacidMg);
+        this.leucineMg = safeSub(this.leucineMg, leucineMg);
+        this.methionineMg = safeSub(this.methionineMg, methionineMg);
+        this.seleniumUg = safeSub(this.seleniumUg, seleniumUg);
+        this.omega3G = safeSub(this.omega3G, omega3G);
+        this.vitaminAUg = safeSub(this.vitaminAUg, vitaminAUg);
+        this.vitaminBMg = safeSub(this.vitaminBMg, vitaminBMg);
+        this.folicacidUg = safeSub(this.folicacidUg, folicacidUg);
+        this.vitaminB12Ug = safeSub(this.vitaminB12Ug, vitaminB12Ug);
+        this.vitaminCMg = safeSub(this.vitaminCMg, vitaminCMg);
+        this.vitaminDUg = safeSub(this.vitaminDUg, vitaminDUg);
+        this.vitaminEMg = safeSub(this.vitaminEMg, vitaminEMg);
     }
 
-    */
+    // ==========================================
+    //  Null Safety Helper Methods (내부 사용용)
+    // ==========================================
+    private Double safeAdd(Double origin, double valueToAdd) {
+        return (origin == null ? 0.0 : origin) + valueToAdd;
+    }
+    private Double safeSub(Double origin, double valueToSub) {
+        double result = (origin == null ? 0.0 : origin) - valueToSub;
+        return Math.max(0.0, result); // 음수가 되지 않도록 방어
+    }
 }

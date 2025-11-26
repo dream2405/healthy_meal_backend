@@ -4,13 +4,13 @@ import jakarta.persistence.Column;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
+import java.lang.reflect.Field;
 import java.util.List;
 
 @Data
-@AllArgsConstructor
 public class FoodElement {
     private String name;
-    private Double intakeAmount;
+    private Float intakeAmount;
     private Double energyKcal;
     private Double carbohydrateG;
     private Double proteinG;

@@ -7,6 +7,6 @@ import java.util.List;
 
 @AllArgsConstructor
 @Data
-public class DailyIntakeDTO {
+public class DailyIntakesDTO {
     private List<DailyIntakeElement> dailyintakes;
 }

@@ -76,12 +76,13 @@ public class MealRecord {
 
         this.mealInfoFoodLinks.add(link);
         food.getMealInfoFoodLinks().add(link);
+    }*/
+
+    public List<MealRecordFoodLink> getFoodLink() {
+        return this.mealRecordFoodLinks;
     }
 
-    public List<MealInfoFoodLink> getFoodLink() {
-        return this.mealInfoFoodLinks;
-    }
-
+    /*
     public void removeFood(Food food) {
         Iterator<MealInfoFoodLink> iterator = this.mealInfoFoodLinks.iterator();
 
@@ -95,14 +96,13 @@ public class MealRecord {
             }
         }
     }
-
+    */
     // 편의 메서드: 연관된 모든 Food 객체를 가져오는 메서드
     public List<Food> getFoods() {
         List<Food> foods = new ArrayList<>();
-        for (MealInfoFoodLink link : this.mealInfoFoodLinks) {
+        for (MealRecordFoodLink link : this.mealRecordFoodLinks) {
             foods.add(link.getFood());
         }
         return foods;
     }
-    */
 }

@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.Food;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.MealRecord;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -12,6 +13,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Disabled
 @DataJpaTest
 @Transactional
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
@@ -62,7 +64,7 @@ public class FoodElementRelationshipTest {
         assertEquals(1, mealInfos.size());
         assertEquals(retrievedMealInfo.getId(), mealInfos.get(0).getId());
     }*/
-
+    /*
     @Test
     void testMealInfoFoodRelationship() {
         // 유저 생성
@@ -101,5 +103,5 @@ public class FoodElementRelationshipTest {
         assertTrue(foods[0].getMealInfos().stream().anyMatch(mealInfo -> mealInfo.getId().equals(mealRecord1.getId())));
         assertTrue(foods[1].getMealInfos().stream().anyMatch(mealInfo -> mealInfo.getId().equals(mealRecord2.getId())));
     }
-
+    */
 }

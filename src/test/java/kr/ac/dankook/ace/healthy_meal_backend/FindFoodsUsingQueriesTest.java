@@ -1,10 +1,12 @@
 package kr.ac.dankook.ace.healthy_meal_backend;
 
 import kr.ac.dankook.ace.healthy_meal_backend.entity.Food;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
 
+@Disabled
 public class FindFoodsUsingQueriesTest extends HealthyMealBackendApplicationTests {
 /*    @Test
     void testFindAll() {

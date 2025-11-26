@@ -2,6 +2,8 @@ package kr.ac.dankook.ace.healthy_meal_backend.exception;
 
 import lombok.Getter;
 
+import java.io.IOException;
+
 /**
  * 파일 저장 및 관리 작업 중 발생하는 예외를 위한 클래스입니다.
  * 다양한 오류 유형을 ErrorType enum으로 구분합니다.
@@ -26,7 +28,9 @@ public class StorageException extends RuntimeException {
         DELETE_FAILED,              // 파일 삭제 실패
         DELETE_ALL_FAILED,          // 모든 파일 삭제 실패
         INVALID_PATH,               // 유효하지 않은 경로 (예: 저장소 외부 접근 시도)
-        UNKNOWN_ERROR               // 기타 알 수 없는 오류
+        UNKNOWN_ERROR,              // 기타 알 수 없는 오류
+        DIR_FAILED,                 // 경로에 디렉토리 생성 실패
+        FILE_MOVE_FAILED,           // 파일 이동 실패
     }
 
     /**
