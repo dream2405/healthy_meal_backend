@@ -7,6 +7,11 @@ spring:
     multipart:
       max-file-size: 100MB
       max-request-size: 100MB
+  grpc:
+    server:
+      max-inbound-message-size: 20971520
+  autoconfigure:
+    exclude: net.devh.boot.grpc.server.autoconfigure.GrpcServerSecurityAutoConfiguration
 
 springdoc:
   swagger-ui:

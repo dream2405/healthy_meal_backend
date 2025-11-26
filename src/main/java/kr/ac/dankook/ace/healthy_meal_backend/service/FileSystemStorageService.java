@@ -37,6 +37,7 @@ public class FileSystemStorageService implements StorageService {
     // 저장소 루트 위치를 클래스 내 상수로 정의.
 
     private final Path rootLocation;
+    private final Path tempLocation;
 
     // 파일 크기 제한 = 100MB
     private static final long MAX_FILE_SIZE = 100 * 1024 * 1024;
@@ -52,12 +53,17 @@ public class FileSystemStorageService implements StorageService {
      * 저장소 루트 위치를 초기화합니다.
      */
     public FileSystemStorageService(@Value("${storage.location:uploads}") String location) {
-        if (Paths.get(location).isAbsolute()) {
-            this.rootLocation = Paths.get(location).normalize();
+        Path pathInput = Paths.get(location);
+        if (pathInput.isAbsolute()) {
+            this.rootLocation = pathInput.normalize();
         } else {
             this.rootLocation = Paths.get(System.getProperty("user.dir")).resolve(location).normalize();
+
         }
+        this.tempLocation = this.rootLocation.resolve("temp");
+        this.init();
         logger.info("File system storage root location set to: {}", this.rootLocation);
+        logger.info("File system storage temp location set to: {}", this.tempLocation);
     }
 
     /**
@@ -68,7 +74,9 @@ public class FileSystemStorageService implements StorageService {
     public void init() {
         try {
             Files.createDirectories(rootLocation);
-            logger.info("Initialized storage at: {}", rootLocation.toAbsolutePath());
+            Files.createDirectories(tempLocation);
+            logger.info("Initialized root storage at: {}", rootLocation.toAbsolutePath());
+            logger.info("Initialized temp storage at location: {}", tempLocation.toAbsolutePath());
         } catch (IOException e) {
             logger.error("Could not initialize storage location: {}", rootLocation.toAbsolutePath(), e);
             throw new StorageException(
@@ -87,7 +95,7 @@ public class FileSystemStorageService implements StorageService {
      * @throws StorageException 파일 저장 중 오류 발생 시
      */
     @Override
-    public String store(MultipartFile file) {
+    public String storeTemp(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             logger.warn("Attempted to store an empty file.");
             throw new StorageException("Failed to store empty file.", StorageException.ErrorType.EMPTY_FILE);
@@ -136,10 +144,10 @@ public class FileSystemStorageService implements StorageService {
                 );
             }
 
-            Path destinationFile = this.rootLocation.resolve(storedFilename).normalize().toAbsolutePath();
+            Path destinationFile = this.tempLocation.resolve(storedFilename).normalize().toAbsolutePath();
 
             // 최종 저장 경로가 루트 저장소 내에 있는지 확인 (보안)
-            if (!destinationFile.getParent().equals(this.rootLocation)) {
+            if (!destinationFile.getParent().equals(this.tempLocation)) {
                 logger.error("Security alert: Attempted to store file outside the root storage directory. Target: {}", destinationFile);
                 throw new StorageException(
                         "Cannot store file outside current directory. Attempted path: " + destinationFile,
@@ -163,6 +171,20 @@ public class FileSystemStorageService implements StorageService {
         }
     }
 
+    @Override
+    public boolean existsInTemp(String filename) {
+        if (filename.contains("..")) {
+            // 보안상 안전하지 않은 경로는 '없음'으로 처리하거나 예외를 던질 수 있습니다.
+            return false;
+        }
+
+        // 2. 경로 생성
+        Path file = this.tempLocation.resolve(filename).normalize();
+
+        // 3. 파일 존재 여부 && 디렉토리가 아닌 일반 파일인지 확인
+        return Files.exists(file) && Files.isRegularFile(file);
+    }
+
     /**
      * 지정된 파일명의 Path 객체를 반환합니다.
      * @param filename 로드할 파일의 이름
@@ -176,6 +198,29 @@ public class FileSystemStorageService implements StorageService {
             throw new StorageException("Filename cannot be null or empty for loading.", StorageException.ErrorType.INVALID_FILENAME);
         }
         return this.rootLocation.resolve(filename).normalize();
+    }
+
+    @Override
+    public void storeRoot(String filename) {
+        try {
+            if (filename.contains("..")) {
+                // 보안상 상위 디렉토리 접근 차단
+                throw new StorageException("Cannot move file with relative path outside current directory ", StorageException.ErrorType.FILE_MOVE_FAILED);
+            }
+
+            // 1. 소스 경로(temp)와 타겟 경로(root) 설정
+            Path sourcePath = this.tempLocation.resolve(filename).normalize();
+            Path targetPath = this.rootLocation.resolve(filename).normalize();
+
+            // 2. 파일 이동 실행
+            // StandardCopyOption.REPLACE_EXISTING: 목적지에 같은 이름의 파일이 있으면 덮어씁니다.
+            Files.move(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+
+            logger.info("Moved file from temp to root: {}", filename);
+
+        } catch (IOException e) {
+            throw new StorageException("Failed to move file " + filename, StorageException.ErrorType.FILE_MOVE_FAILED);
+        }
     }
 
     /**

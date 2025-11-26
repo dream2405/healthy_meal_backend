@@ -10,7 +10,7 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED) // Lombok: JPA를 위한 기본 생성자 자동 생성 (protected 접근 수준)
-@ToString(exclude = {"mealInfoFoodLinks", "userFoodLinks"})
+@ToString(exclude = {"mealRecordFoodLinks", "userFoodLinks"})
 public class Food {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) // auto_increment 전략 사용

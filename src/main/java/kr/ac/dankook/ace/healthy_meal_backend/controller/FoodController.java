@@ -1,25 +1,10 @@
 package kr.ac.dankook.ace.healthy_meal_backend.controller;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.transaction.Transactional;
-import jakarta.validation.Valid;
-import kr.ac.dankook.ace.healthy_meal_backend.dto.NutrientValuesDTO;
-import kr.ac.dankook.ace.healthy_meal_backend.dto.FoodPostDTO;
-import kr.ac.dankook.ace.healthy_meal_backend.entity.Food;
-import kr.ac.dankook.ace.healthy_meal_backend.entity.MealRecord;
-import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.FoodRepository;
-import kr.ac.dankook.ace.healthy_meal_backend.repository.MealInfoRepository;
+import kr.ac.dankook.ace.healthy_meal_backend.repository.MealRecordRepository;
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.NoSuchElementException;
 
 @RestController
 @RequiredArgsConstructor
@@ -27,7 +12,7 @@ import java.util.NoSuchElementException;
 @Tag(name = "음식")
 public class FoodController {
     private final FoodRepository foodRepository;
-    private final MealInfoRepository mealInfoRepository;
+    private final MealRecordRepository mealRecordRepository;
 
     /*
     @GetMapping()

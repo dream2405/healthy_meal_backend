@@ -3,12 +3,11 @@ package kr.ac.dankook.ace.healthy_meal_backend.controller;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.DailyIntakeRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.FoodRepository;
-import kr.ac.dankook.ace.healthy_meal_backend.repository.MealInfoRepository;
+import kr.ac.dankook.ace.healthy_meal_backend.repository.MealRecordRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.UserRepository;
-import kr.ac.dankook.ace.healthy_meal_backend.service.MealInfoFoodAnalyzeService;
+import kr.ac.dankook.ace.healthy_meal_backend.service.MealRecordService;
 import kr.ac.dankook.ace.healthy_meal_backend.service.NutrientIntakeService;
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
@@ -20,13 +19,13 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserRepository userRepository;
-    private final MealInfoRepository mealInfoRepository;
+    private final MealRecordRepository mealRecordRepository;
     private final DailyIntakeRepository dailyIntakeRepository;
     private final FoodRepository foodRepository;
     private final NutrientIntakeService nutrientIntakeService;
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
-    private final MealInfoFoodAnalyzeService mealInfoFoodAnalyzeService;
+    private final MealRecordService mealRecordService;
     /*
     @GetMapping("/{userId}")
     @Operation(summary = "주어진 ID를 가진 특정 유저 가져오기", security = @SecurityRequirement(name = "BearerAuth"))

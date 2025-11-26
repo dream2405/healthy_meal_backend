@@ -28,5 +28,4 @@ public class MealRecordFoodLink {
 
     @Column(name = "intake_amount")
     private Float intakeAmount;
-
 }

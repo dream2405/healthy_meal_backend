@@ -8,7 +8,11 @@ import java.nio.file.Path;
 public interface StorageService {
     void init();
 
-    String store(MultipartFile file);
+    String storeTemp(MultipartFile file);
+
+    boolean existsInTemp(String filename);
+
+    void storeRoot(String filename);
 
     Path load(String filename);
 
