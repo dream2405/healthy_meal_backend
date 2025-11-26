@@ -1,15 +1,12 @@
 package kr.ac.dankook.ace.healthy_meal_backend.controller;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
-import kr.ac.dankook.ace.healthy_meal_backend.repository.DailyIntakeRepository;
-import kr.ac.dankook.ace.healthy_meal_backend.repository.FoodRepository;
-import kr.ac.dankook.ace.healthy_meal_backend.repository.MealRecordRepository;
-import kr.ac.dankook.ace.healthy_meal_backend.repository.UserRepository;
-import kr.ac.dankook.ace.healthy_meal_backend.service.MealRecordService;
-import kr.ac.dankook.ace.healthy_meal_backend.service.NutrientIntakeService;
+import kr.ac.dankook.ace.healthy_meal_backend.dto.ResultMessageResponseDTO;
+import kr.ac.dankook.ace.healthy_meal_backend.dto.UserResponseDTO;
+import kr.ac.dankook.ace.healthy_meal_backend.dto.UserUpdateRequestDTO;
+import kr.ac.dankook.ace.healthy_meal_backend.service.UserService;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -18,163 +15,25 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "유저")
 public class UserController {
 
-    private final UserRepository userRepository;
-    private final MealRecordRepository mealRecordRepository;
-    private final DailyIntakeRepository dailyIntakeRepository;
-    private final FoodRepository foodRepository;
-    private final NutrientIntakeService nutrientIntakeService;
+    private final UserService userService;
 
-    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
-    private final MealRecordService mealRecordService;
-    /*
     @GetMapping("/{userId}")
-    @Operation(summary = "주어진 ID를 가진 특정 유저 가져오기", security = @SecurityRequirement(name = "BearerAuth"))
-    public ResponseEntity<UserGetDTO> getUser(@PathVariable String userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다: " + userId));
-        UserGetDTO userGetDTO = modelMapper.map(user, UserGetDTO.class);
-        return ResponseEntity.ok().body(userGetDTO);
+    public ResponseEntity<UserResponseDTO> getUser(@PathVariable String userId) {
+        UserResponseDTO userResponseDTO = userService.getUser(userId);
+        return ResponseEntity.ok(userResponseDTO);
     }
-    */
 
-    /*
+    @PatchMapping("/{userId}")
+    public ResponseEntity<ResultMessageResponseDTO> updateUser(
+            @PathVariable String userId,
+            @RequestBody UserUpdateRequestDTO userUpdateRequestDTO) {
+        userService.updateUser(userId, userUpdateRequestDTO);
+        return ResponseEntity.ok(new ResultMessageResponseDTO("User updated successfully"));
+    }
 
     @DeleteMapping("/{userId}")
-    @Operation(summary = "주어진 ID를 가진 유저 삭제", security = @SecurityRequirement(name = "BearerAuth"))
-    public ResponseEntity<Object> deleteUser(@PathVariable String userId) {
-        if (!userRepository.existsById(userId)) {
-            throw new NoSuchElementException("사용자를 찾을 수 없습니다: " + userId);
-        }
-        userRepository.deleteById(userId);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<ResultMessageResponseDTO> deleteUser(@PathVariable String userId) {
+        userService.deleteUser(userId);
+        return ResponseEntity.ok(new ResultMessageResponseDTO("User deleted successfully"));
     }
-
-    @GetMapping("/{userId}/meal-info")
-    @Operation(summary = "주어진 ID의 유저가 기록한 모든 식단 정보 가져오기", security = @SecurityRequirement(name = "BearerAuth"))
-    public ResponseEntity<List<MealRecordDTO>> getMealInfo(
-            @PathVariable String userId,
-            @RequestParam(value = "date", required = false)
-            @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date
-    ) {
-        if (!userRepository.existsById(userId)) {
-            throw new NoSuchElementException("사용자를 찾을 수 없습니다: " + userId);
-        }
-        List<MealRecord> mealRecords = mealInfoRepository.findByUserIdAndCreatedDate(userId, date);
-        List<MealRecordDTO> mealRecordDTOS = mealRecords.stream()
-                .map(mealInfo -> modelMapper.map(mealInfo, MealRecordDTO.class)).toList();
-        return ResponseEntity.ok().body(mealRecordDTOS);
-    }
-
-
-    @PostMapping(value = "/{userId}/meal-info", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "주어진 정보로 주어진 ID의 유저가 식단정보 기록", security = @SecurityRequirement(name = "BearerAuth"))
-    @Transactional
-    public ResponseEntity<MealRecordDTO> createMealInfo(
-            @PathVariable String userId,
-            @RequestPart("img") MultipartFile file
-    ) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다: " + userId));
-        logger.info("식단사진저장 <시작>");
-        MealRecord mealRecord = mealInfoAction.createMealInfo(file, user);
-        MealRecordDTO mealRecordDTO = modelMapper.map(mealRecord, MealRecordDTO.class);
-        logger.info("식단사진저장 <완료>");
-        return ResponseEntity.status(HttpStatus.CREATED).body(mealRecordDTO);
-    }
-
-    @PostMapping("/{userId}/meal-info/{mealInfoId}/analyze")
-    @Operation(
-            summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보를 gpt가 분석",
-            description = "식단 정보와 음식을 연결", security = @SecurityRequirement(name = "BearerAuth"))
-    @Transactional
-    public ResponseEntity<FoodElement> analyzeMealInfo(@PathVariable String userId,
-                                                       @PathVariable Long mealInfoId) {
-        List<String> foodResult = mealInfoAction.analyzeMealInfo(mealInfoId, userId);
-        List<Integer> foodWeight = mealInfoFoodAnalyzeService.getFoodWeight(foodResult);
-        FoodElement food = new FoodElement(foodResult, foodWeight);
-        return ResponseEntity.status(HttpStatus.CREATED).body(food);
-    }
-
-    @PatchMapping("/{userId}/meal-info/{mealInfoId}")
-    @Operation(summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보 기록/수정", security = @SecurityRequirement(name = "BearerAuth"))
-    @Transactional
-    public ResponseEntity<MealRecordDTO> updateMealInfo(
-            @PathVariable String userId, @PathVariable Long mealInfoId,
-            @RequestBody UpdateMealInfoRequestDTO updateMealInfoRequestDTO) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다: " + userId));
-        MealRecord mealRecord = user.getMealRecords().stream()
-                .filter(mf -> Objects.equals(mf.getId(), mealInfoId))
-                .findFirst()
-                .orElseThrow(() -> new NoSuchElementException("식단 정보를 찾을 수 없습니다: " + mealInfoId));
-        if(updateMealInfoRequestDTO.getIntakeAmounts().size() != updateMealInfoRequestDTO.getConfirmedFoods().size()) {
-            throw new IllegalArgumentException("섭취량과 음식 리스트 길이가 맞지 않음");
-        }
-
-        mealRecord.getFoods().clear();
-
-        for(var i=0; i < updateMealInfoRequestDTO.getConfirmedFoods().size(); i++) {
-            String foodName = updateMealInfoRequestDTO.getConfirmedFoods().get(i);
-            kr.ac.dankook.ace.healthy_meal_backend.entity.Food food = foodRepository.findFirstByName(foodName)
-                    .orElseThrow(() -> new IllegalArgumentException(foodName + " 에 해당하는 음식이 없음"));
-            mealRecord.addFoodLink(food, updateMealInfoRequestDTO.getIntakeAmounts().get(i));
-        }
-
-        mealRecord.setDiary(updateMealInfoRequestDTO.getDiary());
-
-        // 섭취 식단에 따른 영양소 섭취량 계산 -> DailyIntake Update
-        nutrientIntakeService.applyInsertDailyIntake(mealRecord, user);
-
-        MealRecordDTO mealRecordDTO = modelMapper.map(mealRecord, MealRecordDTO.class);
-        return ResponseEntity.ok(mealRecordDTO);
-    }
-
-
-    @GetMapping("/{userId}/meal-info/{mealInfoId}")
-    @Operation(summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보 가져오기", security = @SecurityRequirement(name = "BearerAuth"))
-    public ResponseEntity<MealRecordDTO> getMealInfo(
-            @PathVariable String userId, @PathVariable Long mealInfoId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다: " + userId));
-        MealRecord mealRecord = user.getMealRecords().stream()
-                .filter(mf -> Objects.equals(mf.getId(), mealInfoId))
-                .findFirst()
-                .orElseThrow(() -> new NoSuchElementException("식단 정보를 찾을 수 없습니다: " + mealInfoId));
-        return ResponseEntity.ok(modelMapper.map(mealRecord, MealRecordDTO.class));
-    }
-
-    @DeleteMapping("/{userId}/meal-info/{mealInfoId}")
-    @Operation(summary = "주어진 ID의 유저가 기록한 주어진 ID의 식단 정보 삭제", security = @SecurityRequirement(name = "BearerAuth"))
-    @Transactional
-    public ResponseEntity<Object> deleteMealInfo(
-            @PathVariable String userId, @PathVariable Long mealInfoId) {
-        if (!userRepository.existsById(userId)) {
-            throw new NoSuchElementException("사용자를 찾을 수 없습니다: " + userId);
-        }
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다: " + userId));
-        mealInfoAction.deleteMealInfo(mealInfoId, user);
-        return ResponseEntity.ok().build();
-    }
-
-    @GetMapping("/{userId}/daily-intake/{dailyIntakeId}")
-    @Operation(summary = "주어진 ID의 유저의 주어진 ID의 일별섭취기록 가져오기", security = @SecurityRequirement(name = "BearerAuth"))
-    public ResponseEntity<DailyIntakeDTO> getDailyIntake(
-            @PathVariable String userId,
-            @PathVariable Integer dailyIntakeId) {
-        DailyIntake dailyIntake = dailyIntakeRepository.findById(dailyIntakeId)
-                .orElseThrow(() -> new NoSuchElementException("유저 " + userId + "의 일별섭취기록을 찾을 수 없습니다: " + dailyIntakeId));
-        return ResponseEntity.ok().body(modelMapper.map(dailyIntake, DailyIntakeDTO.class));
-    }
-
-    @DeleteMapping("/{userId}/daily-intake/{dailyIntakeId}")
-    @Operation(summary = "주어진 ID의 유저가 주어진 ID의 일별섭취기록 삭제", security = @SecurityRequirement(name = "BearerAuth"))
-    public ResponseEntity<?> deleteDailyIntake(@PathVariable String userId, @PathVariable Integer dailyIntakeId) {
-        if(!dailyIntakeRepository.existsByUserIdAndId(userId, dailyIntakeId)) {
-            throw new NoSuchElementException("유저 " + userId + "의 일별섭취기록을 찾을 수 없습니다: " + dailyIntakeId);
-        }
-        dailyIntakeRepository.deleteById(dailyIntakeId);
-        return ResponseEntity.noContent().build();
-    }
-    */
 }
