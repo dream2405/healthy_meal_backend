@@ -27,7 +27,8 @@ public class NutritionService {
         User user = userRepository.findById(userId).orElseThrow(() -> new NoSuchElementException("해당하는 사용자가 없음"));
         DietCriterion dietCriterion = dietCriterionRepository.findApplicableCriterion(user.getAge(), user.getGender()).orElseThrow(() -> new NoSuchElementException("사용자에 해당하는 영양섭취 기준이 없음"));
         List<NutrientWeight> nutrientWeights = nutrientWeightRepository.findByUserId(userId);
-
+        System.out.println("dietCriterion = " + dietCriterion.getCarbohydrateG());
+        System.out.println("nutrientWeights: " + nutrientWeights);
         NutrientValuesDTO dto = new NutrientValuesDTO(new ArrayList<>());
         for(NutrientWeight nutrientWeight : nutrientWeights) {
             NutrientValueElement nutrientValueElement = new NutrientValueElement();
@@ -36,6 +37,7 @@ public class NutritionService {
             nutrientValueElement.setValue(getFieldValue(dietCriterion, nutrientName) * nutrientWeight.getWeight());
             dto.getNutrientValues().add(nutrientValueElement);
         }
+        System.out.println("dto.getNutrientValues(): " + dto.getNutrientValues());
         return dto;
     }
     private Double getFieldValue(DietCriterion criterion, String nutrientName) {
