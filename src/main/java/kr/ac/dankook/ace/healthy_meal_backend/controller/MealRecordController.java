@@ -32,7 +32,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/users/{userId}")
-@Tag(name = "유저")
+@Tag(name = "식단기록")
 public class MealRecordController {
 
     private final NutrientIntakeService nutrientIntakeService;
@@ -74,8 +74,7 @@ public class MealRecordController {
             return ResponseEntity.badRequest().body("유효하지 않은 식단기록 요청 (이미지 분석 및 저장 필요)");
         }
         MealRecord mealRecord = mealRecordService.createMealRecord(userId, mealRecordRequestDTO);
-        nutrientIntakeService.applyDailyIntake(mealRecord);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        return ResponseEntity.status(HttpStatus.CREATED).body(mealRecord);
     }
 
     @PatchMapping(value = "/mealrecord")

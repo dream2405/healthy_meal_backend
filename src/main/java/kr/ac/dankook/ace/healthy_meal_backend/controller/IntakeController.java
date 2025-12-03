@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/users/{userId}")
-@Tag(name = "영양소 섭취현황")
+@Tag(name = "영양소 섭취분석")
 public class IntakeController {
     private final DailyIntakeRepository dailyIntakeRepository;
     private final NutritionService nutritionService;

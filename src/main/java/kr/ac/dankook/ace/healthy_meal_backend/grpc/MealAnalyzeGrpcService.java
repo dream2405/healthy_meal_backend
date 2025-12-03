@@ -30,11 +30,12 @@ public class MealAnalyzeGrpcService extends MealAnalyzeServiceGrpc.MealAnalyzeSe
     @Override
     public void uploadImage(ImageRequest request, StreamObserver<AnalyzeResult> responseObserver) {
         try {
+            String originalFileName = request.getFilename();
             String filetype = request.getFiletype();
             ByteString imageData =  request.getImagedata();
             byte[] rawBytes = imageData.toByteArray();
 
-            MultipartFile multipartFile = new GrpcMultipartFile("file", "requestedpicture", filetype, rawBytes);
+            MultipartFile multipartFile = new GrpcMultipartFile("file", originalFileName, filetype, rawBytes);
             String filename = storageService.storeTemp(multipartFile);
 
             String base64Image = Base64.getEncoder().encodeToString(rawBytes);
@@ -49,7 +50,7 @@ public class MealAnalyzeGrpcService extends MealAnalyzeServiceGrpc.MealAnalyzeSe
             responseObserver.onNext(analyzeResult);
             responseObserver.onCompleted();
         } catch (Exception e) {
-            logger.error("gRPC API Handling 오류 : " + e.getMessage());
+            logger.error("gRPC API Handling 오류 : {}", e.getMessage());
             responseObserver.onError(e);
         }
     }

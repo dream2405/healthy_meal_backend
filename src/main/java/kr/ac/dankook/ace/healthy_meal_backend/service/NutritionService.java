@@ -28,7 +28,7 @@ public class NutritionService {
         DietCriterion dietCriterion = dietCriterionRepository.findApplicableCriterion(user.getAge(), user.getGender()).orElseThrow(() -> new NoSuchElementException("사용자에 해당하는 영양섭취 기준이 없음"));
         List<NutrientWeight> nutrientWeights = nutrientWeightRepository.findByUserId(userId);
 
-        NutrientValuesDTO dto = new NutrientValuesDTO();
+        NutrientValuesDTO dto = new NutrientValuesDTO(new ArrayList<>());
         for(NutrientWeight nutrientWeight : nutrientWeights) {
             NutrientValueElement nutrientValueElement = new NutrientValueElement();
             String nutrientName = nutrientWeight.getNutrientName();

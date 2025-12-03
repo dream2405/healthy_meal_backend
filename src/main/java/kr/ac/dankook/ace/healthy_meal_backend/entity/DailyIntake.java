@@ -95,27 +95,27 @@ public class DailyIntake {
 
     public Double getValue(String fieldName) {
         switch (fieldName) {
-            case "energy_kcal": return energyKcal;
-            case "carbohydrate_g": return carbohydrateG;
-            case "protein_g": return proteinG;
-            case "calcium_mg": return calciumMg;
-            case "kalium_mg": return kaliumMg;
-            case "iron_mg": return ironMg;
-            case "magnesium_mg": return magnesiumMg;
-            case "zinc_mg": return zincMg;
-            case "cellulose_g": return celluloseG;
-            case "aminoacid_mg": return aminoacidMg;
-            case "leucine_mg": return leucineMg;
-            case "methionine_mg": return methionineMg;
-            case "selenium_ug": return seleniumUg;
-            case "omega3_g": return omega3G;
-            case "vitaminA_ug": return vitaminAUg;
-            case "vitaminB_mg": return vitaminBMg;
-            case "folicacid_ug": return folicacidUg;
-            case "vitaminB12_ug": return vitaminB12Ug;
-            case "vitaminC_mg": return vitaminCMg;
-            case "vitaminD_ug": return vitaminDUg;
-            case "vitaminE_mg": return vitaminEMg;
+            case "energyKcal": return energyKcal;
+            case "carbohydrateG": return carbohydrateG;
+            case "proteinG": return proteinG;
+            case "calciumMg": return calciumMg;
+            case "kaliumMg": return kaliumMg;
+            case "ironMg": return ironMg;
+            case "magnesiumMg": return magnesiumMg;
+            case "zincMg": return zincMg;
+            case "celluloseG": return celluloseG;
+            case "aminoacidMg": return aminoacidMg;
+            case "leucineMg": return leucineMg;
+            case "methionineMg": return methionineMg;
+            case "seleniumUg": return seleniumUg;
+            case "omega3G": return omega3G;
+            case "vitaminAUg": return vitaminAUg;
+            case "vitaminBMg": return vitaminBMg;
+            case "folicacidUg": return folicacidUg;
+            case "vitaminB12Ug": return vitaminB12Ug;
+            case "vitaminCMg": return vitaminCMg;
+            case "vitaminDUg": return vitaminDUg;
+            case "vitaminEMg": return vitaminEMg;
             default:
                 throw new IllegalArgumentException("Unknown field: " + fieldName);
         }

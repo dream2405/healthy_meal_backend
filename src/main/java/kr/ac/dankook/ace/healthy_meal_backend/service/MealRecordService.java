@@ -15,7 +15,6 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
-import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -34,10 +33,10 @@ public class MealRecordService {
     private final DailyIntakeRepository dailyIntakeRepository;
     private final UserRepository userRepository;
     private final MealRecordFoodLinkRepository mealRecordFoodLinkRepository;
-    private final NutrientWeightRepository nutrientWeightRepository;
     private final RestClient convClient;
     private final RestClient respClient;
     private final ImagePreprocessorService imagePreprocessorService;
+    private final NutritionService nutritionService;
     private final NutrientIntakeService nutrientIntakeService;
 
     private static final Logger logger = LoggerFactory.getLogger(MealRecordService.class);
@@ -52,6 +51,7 @@ public class MealRecordService {
             NutrientWeightRepository nutrientWeightRepository,
             @Qualifier("convClient") RestClient convClient,
             @Qualifier("respClient") RestClient respClient,
+            NutritionService nutritionService,
             NutrientIntakeService nutrientIntakeService,
             ImagePreprocessorService imagePreprocessorService
     ) {
@@ -62,13 +62,14 @@ public class MealRecordService {
         this.userRepository = userRepository;
         this.mealRecordFoodLinkRepository = mealRecordFoodLinkRepository;
         this.dailyIntakeRepository = dailyIntakeRepository;
-        this.nutrientWeightRepository = nutrientWeightRepository;
+        this.nutritionService = nutritionService;
         this.imagePreprocessorService = imagePreprocessorService;
         this.nutrientIntakeService = nutrientIntakeService;
     }
 
     public List<MealRecordDTO> getMealRecord(String userId, LocalDate date) {
         List<MealRecordDTO> mealRecordDTOS = new ArrayList<>();
+
         List<MealRecord> mealRecords = mealRecordRepository.findByUserIdAndCreatedDate(userId, date);
         for (MealRecord mealRecord : mealRecords) {
             MealRecordDTO mealRecordDTO = new MealRecordDTO();
@@ -78,30 +79,48 @@ public class MealRecordService {
             mealRecordDTO.setImgPath(mealRecord.getImgPath());
             mealRecordDTO.setTakenAt(mealRecord.getTakenAt());
             mealRecordDTO.setDiary(mealRecord.getDiary());
-            mealRecordDTO.setFoods(getfoodElements(userId, foodLinks));
+            mealRecordDTO.setFoods(getFoodElements(foodLinks));
             mealRecordDTOS.add(mealRecordDTO);
         }
         return mealRecordDTOS;
     }
-    private List<FoodElement> getfoodElements(String userId, List<MealRecordFoodLink> foodlinks) {
+    private List<FoodElement> getFoodElements(List<MealRecordFoodLink> foodLinks) {
         List<FoodElement> foodElements = new ArrayList<>();
-        List<NutrientWeight> nutrientWeights = nutrientWeightRepository.findByUserId(userId);
-        List<String> nutrientNames = new ArrayList<>();
-        for (NutrientWeight nutrientWeight : nutrientWeights) {
-            nutrientNames.add(nutrientWeight.getNutrientName());
-        }
-        for (MealRecordFoodLink foodlink : foodlinks) {
+        for (MealRecordFoodLink foodLink : foodLinks) {
             FoodElement foodElement = new FoodElement();
-            Food food = foodlink.getFood();
-            Float intakeAmount = foodlink.getIntakeAmount();
+            Food food = foodLink.getFood();
+            Float intakeAmount = foodLink.getIntakeAmount();
             foodElement.setName(food.getName());
-            for (String nutrientName : nutrientNames) {
-                setNutrientValue(foodElement, nutrientName, (getNutrientValue(food, nutrientName) * intakeAmount));
-            }
-            foodElements.add(foodElement);
+            foodElement.setIntakeAmount(intakeAmount);
+            foodElements.add(setNutrientValue(food, foodElement));
         }
         return foodElements;
     }
+    private FoodElement setNutrientValue(Food e, FoodElement dto) {
+        dto.setEnergyKcal(e.getEnergyKcal());
+        dto.setCarbohydrateG(e.getCarbohydrateG());
+        dto.setProteinG(e.getProteinG());
+        dto.setCalciumMg(e.getCalciumMg());
+        dto.setKaliumMg(e.getKaliumMg());
+        dto.setIronMg(e.getIronMg());
+        dto.setMagnesiumMg(e.getMagnesiumMg());
+        dto.setZincMg(e.getZincMg());
+        dto.setCelluloseG(e.getCelluloseG());
+        dto.setAminoacidMg(e.getAminoacidMg());
+        dto.setLeucineMg(e.getLeucineMg());
+        dto.setMethionineMg(e.getMethionineMg());
+        dto.setSeleniumUg(e.getSeleniumUg());
+        dto.setOmega3G(e.getOmega3G());
+        dto.setVitaminAUg(e.getVitaminAUg());
+        dto.setVitaminBMg(e.getVitaminBMg());
+        dto.setFolicacidUg(e.getFolicacidUg());
+        dto.setVitaminB12Ug(e.getVitaminB12Ug());
+        dto.setVitaminCMg(e.getVitaminCMg());
+        dto.setVitaminDUg(e.getVitaminDUg());
+        dto.setVitaminEMg(e.getVitaminEMg());
+        return dto;
+    }
+    /*
     private double getNutrientValue(Food food, String fieldName) {
         try {
             // 1. 해당 클래스에서 이름이 일치하는 필드(Field) 객체를 찾음
@@ -110,7 +129,7 @@ public class MealRecordService {
             // 2. private 필드여도 접근 가능하도록 설정
             field.setAccessible(true);
 
-            return field.getDouble(food);
+            return ((Number) field.get(food)).doubleValue();
         } catch (NoSuchFieldException e) {
             System.out.println("필드 이름을 찾을 수 없습니다: " + fieldName);
             return 0;
@@ -135,7 +154,7 @@ public class MealRecordService {
         } catch (IllegalAccessException e) {
             System.out.println("필드에 접근할 수 없습니다: " + fieldName);
         }
-    }
+    }*/
 
     @Transactional
     public MealRecord createMealRecord(String userId, MealRecordRequestDTO mealRecordRequestDTO) {
@@ -149,6 +168,22 @@ public class MealRecordService {
         User user = userRepository.findById(userId).orElseThrow(RuntimeException::new);
         mealRecord.setUser(user);
         mealRecordRepository.save(mealRecord);
+
+        DailyIntake dailyIntake = nutrientIntakeService.getDailyIntake(user, LocalDate.now());
+        List<String> foodNames = mealRecordRequestDTO.getConfirmedFoods();
+        List<Float> intakeAmounts = mealRecordRequestDTO.getIntakeAmounts();
+        for (int i = 0; i < foodNames.size(); i++) {
+            Food food = foodRepository.findFirstByName(foodNames.get(i)).orElseThrow(NoSuchElementException::new);
+            MealRecordFoodLink mealRecordFoodLink = new MealRecordFoodLink();
+            mealRecordFoodLink.setFood(food);
+            mealRecordFoodLink.setMealRecord(mealRecord);
+            mealRecordFoodLink.setIntakeAmount(intakeAmounts.get(i));
+            nutrientIntakeService.addFoodNutrition(dailyIntake, food, intakeAmounts.get(i));
+            System.out.println(mealRecordFoodLink);
+            mealRecordFoodLinkRepository.save(mealRecordFoodLink);
+        }
+        dailyIntakeRepository.save(dailyIntake);
+        nutrientIntakeService.calcDailyIntakeScore(userId, nutritionService.getDietCriterion(userId).getNutrientValues());
         return mealRecord;
     }
 
@@ -562,8 +597,24 @@ public class MealRecordService {
     public List<Integer> getFoodWeight(List<String> foods) {
         List<Integer> foodWeights = new ArrayList<>();
         for (String food : foods) {
-            Optional<Food> foodEntity = foodRepository.findFirstByName(food);
-            foodEntity.ifPresent(foodRecord -> foodWeights.add(Integer.parseInt(foodRecord.getWeight().replaceAll("[^\\d.]", ""))));
+            foodRepository.findFirstByName(food).ifPresent(foodRecord -> {
+                String raw = Optional.ofNullable(foodRecord.getWeight()).orElse("0");
+
+                // 숫자와 소수점 외 모두 제거
+                String numeric = raw.replaceAll("[^\\d.]", "");
+
+                // 빈 문자열 또는 "." 만 남을 경우 대비
+                if (numeric.isBlank() || numeric.equals(".")) {
+                    numeric = "0";
+                }
+
+                try {
+                    foodWeights.add(Integer.parseInt(numeric));
+                } catch (NumberFormatException e) {
+                    // 파싱 실패 시 기본값 사용
+                    foodWeights.add(0);
+                }
+            });
         }
         return foodWeights;
     }

@@ -3,6 +3,8 @@ package kr.ac.dankook.ace.healthy_meal_backend.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 import kr.ac.dankook.ace.healthy_meal_backend.dto.NutrientModelDTO;
 import kr.ac.dankook.ace.healthy_meal_backend.dto.NutrientValuesDTO;
 import kr.ac.dankook.ace.healthy_meal_backend.dto.ResultMessageResponseDTO;
@@ -55,6 +57,7 @@ public class NutritionController {
         return ResponseEntity.ok(nutrientModelDTO);
     }
 
+    @Transactional
     @Operation(summary = "사용자 식생활 목표모델 변경", security = @SecurityRequirement(name = "BearerAuth"))
     @PatchMapping("/nutrient-model")
     public ResponseEntity<ResultMessageResponseDTO> patchNutrientModel(
@@ -68,6 +71,7 @@ public class NutritionController {
         try {
             User user = userRepository.findById(userId).orElseThrow(() -> new NoSuchElementException("해당하는 사용자가 없음"));
             user.setNutrientModelname(nutrientModelDTO.getModelname());
+            userRepository.save(user);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new ResultMessageResponseDTO("식생활 목표모델 변경에 실패하였습니다 : " + e.getMessage()));
         }
@@ -92,7 +96,7 @@ public class NutritionController {
     @PostMapping("/nutrient-weights")
     public ResponseEntity<ResultMessageResponseDTO> postDietCriteriaWeight(
             @PathVariable String userId,
-            @RequestBody NutrientValuesDTO nutrientValuesDTO,
+            @Valid @RequestBody NutrientValuesDTO nutrientValuesDTO,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         String authenticatedUserId = userDetails.getUsername();
@@ -111,7 +115,7 @@ public class NutritionController {
     @PutMapping("/nutrient-weights")
     public ResponseEntity<ResultMessageResponseDTO> putDietCriteriaWeight(
             @PathVariable String userId,
-            @RequestBody NutrientValuesDTO nutrientValuesDTO,
+            @Valid @RequestBody NutrientValuesDTO nutrientValuesDTO,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         String authenticatedUserId = userDetails.getUsername();
@@ -130,7 +134,7 @@ public class NutritionController {
     @PatchMapping("/nutrient-weights")
     public ResponseEntity<ResultMessageResponseDTO> patchDietCriteriaWeight(
             @PathVariable String userId,
-            @RequestBody NutrientValuesDTO nutrientValuesDTO,
+            @Valid @RequestBody NutrientValuesDTO nutrientValuesDTO,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         String authenticatedUserId = userDetails.getUsername();

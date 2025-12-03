@@ -29,6 +29,7 @@ public class NutrientIntakeService {
         List<NutrientWeight> nutrientWeights = nutrientWeightRepository.findByUserId(userId);
         DailyIntake dailyIntake = dailyIntakeRepository.findByUserIdAndDay(userId, date)
                 .orElseThrow(NoSuchElementException::new);
+        System.out.println("조회요청된 사용자의 DailyIntake: " + dailyIntake.toString());
         for (NutrientWeight nutrientWeight : nutrientWeights) {
             NutrientValueElement nutrientValueElement = new NutrientValueElement(nutrientWeight.getNutrientName(), dailyIntake.getValue(nutrientWeight.getNutrientName()));
             nutrientValueElements.add(nutrientValueElement);
@@ -54,63 +55,26 @@ public class NutrientIntakeService {
         return dailyIntakeElements;
     }
 
-    @Transactional
-    public NutrientValuesDTO calcDailyIntakeScore(String userId, List<NutrientValueElement> nutrionCriterionElements) {
-        int totalScore = 0;
-        List<NutrientValueElement> nutrientScoreElements = new ArrayList<>();
-        List<NutrientWeight> nutrientWeights = nutrientWeightRepository.findByUserId(userId);
-        Map<String, NutrientWeight> weightMap = nutrientWeights.stream().collect(Collectors.toMap(
-                NutrientWeight::getNutrientName,
-                w -> w
-        ));
-        DailyIntake dailyIntake = dailyIntakeRepository.findByUserIdAndDay(userId, LocalDate.now())
-                .orElseThrow(NoSuchElementException::new);
-        for(NutrientValueElement nutrionCriterion : nutrionCriterionElements) {
-            String nutrientName = nutrionCriterion.getNutrientName();
-            int score = calculateSingleScore(dailyIntake.getValue(nutrientName), (nutrionCriterion.getValue() * weightMap.get(nutrientName).getWeight()), 1.0);
-            nutrientScoreElements.add(new NutrientValueElement(nutrientName, (double)score));
-            totalScore += score;
-        }
-        dailyIntake.setDailyscore(totalScore);
-        dailyIntakeRepository.save(dailyIntake);
-        return new NutrientValuesDTO(nutrientScoreElements);
-    }
-    private int calculateSingleScore(double actual, double target, double sigmaRatio) {
-        if (target <= 0 || Double.isNaN(actual) || Double.isNaN(target)) return 0;
-
-        double diff = actual - target;
-        double sigma = Math.abs(target) * sigmaRatio;
-        if (sigma == 0) return (actual == target) ? 100 : 0;
-
-        double normalized = diff / sigma;
-        double score = 100.0 * Math.exp(-0.5 * normalized * normalized);
-
-        return (int) Math.round(Math.max(0, Math.min(100, score)));
-    }
-
-    // dailyIntake update logic
 
     @Transactional
-    public void applyDailyIntake(MealRecord mealRecord) {
-        LocalDate now = LocalDate.now();
-        String userId = mealRecord.getUser().getId();
-        DailyIntake dailyIntake = dailyIntakeRepository.findByUserIdAndDay(userId, now)
+    public DailyIntake getDailyIntake(User user, LocalDate now) {
+        DailyIntake dailyIntake = dailyIntakeRepository.findByUserIdAndDay(user.getId(), now)
                 .stream()
                 .findFirst()
-                .orElseGet(() -> dailyIntakeRepository.save(createNewDailyIntake(mealRecord.getUser(), now)));
-        mealRecord.getFoodLink().forEach(foodLink -> addFoodNutrition(dailyIntake, foodLink));
-    }
-    private DailyIntake createNewDailyIntake(User user, LocalDate now) {
-        DailyIntake dailyIntake = new DailyIntake();
-        dailyIntake.setUser(user);
-        dailyIntake.setDay(now);
+                .orElseGet(() -> {
+                    DailyIntake newDailyIntake = new DailyIntake();
+                    newDailyIntake.setUser(user);
+                    newDailyIntake.setDay(now);
+                    return dailyIntakeRepository.save(newDailyIntake);
+                });
         return dailyIntake;
     }
-    private void addFoodNutrition(DailyIntake dailyIntake, MealRecordFoodLink foodLink) {
+
+    @Transactional
+    public void addFoodNutrition(DailyIntake dailyIntake, Food food, Float intakeAmount) {
         try {
-            Food food = foodLink.getFood();
             float intakeRatio = Float.parseFloat(food.getWeight().replaceAll("[^\\d.]", "")) / 100;
-            intakeRatio *= foodLink.getIntakeAmount();
+            intakeRatio *= intakeAmount;
             System.out.println("계산된 음식중량 비율 : " + intakeRatio);
             System.out.println("이전 칼로리 섭취량 : " + dailyIntake.getEnergyKcal());
             dailyIntake.addMealIntake(
@@ -148,6 +112,44 @@ public class NutrientIntakeService {
     }
     private Double nullToZero(Double value) {
         return value != null ? value : 0d;
+    }
+
+
+    @Transactional
+    public NutrientValuesDTO calcDailyIntakeScore(String userId, List<NutrientValueElement> nutritionCriterionElements) {
+        int totalScore = 0;
+        List<NutrientValueElement> nutrientScoreElements = new ArrayList<>();
+        List<NutrientWeight> nutrientWeights = nutrientWeightRepository.findByUserId(userId);
+        Map<String, NutrientWeight> weightMap = nutrientWeights.stream().collect(Collectors.toMap(
+                NutrientWeight::getNutrientName,
+                w -> w
+        ));
+        DailyIntake dailyIntake = dailyIntakeRepository.findByUserIdAndDay(userId, LocalDate.now())
+                .orElseThrow(NoSuchElementException::new);
+        int nutrientCount = nutritionCriterionElements.size();
+        for(NutrientValueElement nutritionCriterion : nutritionCriterionElements) {
+            String nutrientName = nutritionCriterion.getNutrientName();
+            int score = calculateSingleScore(dailyIntake.getValue(nutrientName), (nutritionCriterion.getValue() * weightMap.get(nutrientName).getWeight()));
+            score /= nutrientCount;
+            System.out.println("산출된 "+ nutrientName + " 점수 :" + score);
+            nutrientScoreElements.add(new NutrientValueElement(nutrientName, (double)score));
+            totalScore += score;
+        }
+        dailyIntake.setDailyscore(totalScore);
+        dailyIntakeRepository.save(dailyIntake);
+        return new NutrientValuesDTO(nutrientScoreElements);
+    }
+    private int calculateSingleScore(double actual, double target) {
+        if (target <= 0 || Double.isNaN(actual) || Double.isNaN(target)) return 0;
+
+        double diff = actual - target;
+        double sigma = Math.abs(target) * 1.0f;
+        if (sigma == 0) return (actual == target) ? 100 : 0;
+
+        double normalized = diff / sigma;
+        double score = 100.0 * Math.exp(-1.5 * Math.pow(normalized, 4));
+
+        return (int) Math.round(Math.max(0, Math.min(100, score)));
     }
 
     @Transactional

@@ -12,7 +12,7 @@ import org.hibernate.annotations.OnDeleteAction;
 @Table(name = "mealrecord_food_link")
 public class MealRecordFoodLink {
     @EmbeddedId
-    private MealRecordFoodLinkId id;
+    private MealRecordFoodLinkId id = new MealRecordFoodLinkId();
 
     @MapsId("mealRecordId")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

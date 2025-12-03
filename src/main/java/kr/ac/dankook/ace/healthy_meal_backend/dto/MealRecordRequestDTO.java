@@ -12,6 +12,6 @@ public class MealRecordRequestDTO {
     private String imgPath;
     private LocalDateTime takenAt;
     private List<String> confirmedFoods;
-    private List<Double> intakeAmounts;
+    private List<Float> intakeAmounts;
     private String diary;
 }

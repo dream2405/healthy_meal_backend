@@ -112,6 +112,7 @@ public class FileSystemStorageService implements StorageService {
         }
 
         String originalFilename = StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename()));
+        System.out.println("원본 사진파일 이름 : " + originalFilename);
         String extension = "";
         int dotIndex = originalFilename.lastIndexOf('.');
 
@@ -132,7 +133,8 @@ public class FileSystemStorageService implements StorageService {
         }
 
         // 저장될 파일명 생성 (UUID + 원본 확장자)
-        String storedFilename = UUID.randomUUID().toString() + (dotIndex >= 0 ? originalFilename.substring(dotIndex) : "");
+        String storedFilename = UUID.randomUUID().toString() + extension;
+        System.out.println("저장될 사진파일 이름 : " + storedFilename);
 
         try {
             // 파일명에 경로 조작 문자 포함 여부 확인
@@ -180,6 +182,7 @@ public class FileSystemStorageService implements StorageService {
 
         // 2. 경로 생성
         Path file = this.tempLocation.resolve(filename).normalize();
+        logger.info("Attempted to check file exists in temp directory: {}", file.toAbsolutePath());
 
         // 3. 파일 존재 여부 && 디렉토리가 아닌 일반 파일인지 확인
         return Files.exists(file) && Files.isRegularFile(file);
