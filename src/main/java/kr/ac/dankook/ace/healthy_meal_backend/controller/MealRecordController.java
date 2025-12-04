@@ -3,9 +3,7 @@ package kr.ac.dankook.ace.healthy_meal_backend.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import kr.ac.dankook.ace.healthy_meal_backend.dto.AnalyzeResponseDTO;
-import kr.ac.dankook.ace.healthy_meal_backend.dto.MealRecordDTO;
-import kr.ac.dankook.ace.healthy_meal_backend.dto.MealRecordRequestDTO;
+import kr.ac.dankook.ace.healthy_meal_backend.dto.*;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.MealRecord;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.DailyIntakeRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.FoodRepository;
@@ -35,9 +33,9 @@ import java.util.List;
 @Tag(name = "식단기록")
 public class MealRecordController {
 
-    private final NutrientIntakeService nutrientIntakeService;
     private final MealRecordService mealRecordService;
     private final StorageService storageService;
+    private final FoodRepository foodRepository;
 
     private static final Logger logger = LoggerFactory.getLogger(MealRecordController.class);
 
@@ -75,6 +73,21 @@ public class MealRecordController {
         }
         MealRecord mealRecord = mealRecordService.createMealRecord(userId, mealRecordRequestDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(mealRecord);
+    }
+
+    @GetMapping(value = "/mealrecord/foodlist")
+    @Operation(summary = "검색어에 해당하는 식품목록 응답", security = @SecurityRequirement(name = "BearerAuth"))
+    public ResponseEntity<List<FoodSummaryDto>> getFoodList(
+            @PathVariable String userId,
+            @RequestParam(name = "keyword") String keyword,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        String authenticatedUserId = userDetails.getUsername();
+        if (!authenticatedUserId.equals(userId)) {
+            throw new AccessDeniedException("해당 사용자에 대한 접근 권한이 없습니다 (잘못된 userId)");
+        }
+        List<FoodSummaryDto> result = foodRepository.findDistinctNameAndWeightByKeyword(keyword);
+        return ResponseEntity.ok().body(result);
     }
 
     @PatchMapping(value = "/mealrecord")
