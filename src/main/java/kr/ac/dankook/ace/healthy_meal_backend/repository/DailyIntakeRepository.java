@@ -6,14 +6,17 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface DailyIntakeRepository extends CrudRepository<DailyIntake, Integer> {
-    List<DailyIntake> findByUserIdAndDay(String userId, LocalDate day);
+    Optional<DailyIntake> findByUserIdAndDay(String userId, LocalDate day);
+
+    List<DailyIntake> findAllByUserIdAndDayBetween(String userId, LocalDate startDate, LocalDate endDate);
 
     boolean existsByUserIdAndId(String userId, Integer id);
 
     List<DailyIntake> findByUserId(String userId);
 
-    List<DailyIntake> findByDay(LocalDate day);
+    DailyIntake findByDay(LocalDate day);
 }

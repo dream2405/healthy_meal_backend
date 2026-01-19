@@ -1,5 +1,6 @@
 package kr.ac.dankook.ace.healthy_meal_backend.repository;
 
+import kr.ac.dankook.ace.healthy_meal_backend.dto.FoodSummaryDto;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.Food;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
@@ -40,6 +41,11 @@ public interface FoodRepository extends CrudRepository<Food, Long> {
     @Query(value = "SELECT DISTINCT name FROM food WHERE representative_food = :representativeFood",
             nativeQuery = true)
     List<String> findDistinctNameByRepresentativeFood(@Param("representativeFood") String representativeFood);
+
+    @Query("SELECT DISTINCT new kr.ac.dankook.ace.healthy_meal_backend.dto.FoodSummaryDto(f.name, f.weight) " +
+            "FROM Food f " +
+            "WHERE f.name LIKE %:keyword%")
+    List<FoodSummaryDto> findDistinctNameAndWeightByKeyword(@Param("keyword") String keyword);
 
     // 1차 gpt response에 따른 대표식품명 SELECT
     @Query("SELECT DISTINCT f.representativeFood FROM Food f WHERE f.representativeFood LIKE %:gptResponse%")

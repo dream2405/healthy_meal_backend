@@ -10,5 +10,8 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface UserRepository extends CrudRepository<User, String> {
+
     @NotNull Optional<User> findById(@NotNull String userId);
+
+    boolean existsByEmail(@NotNull String email);
 }

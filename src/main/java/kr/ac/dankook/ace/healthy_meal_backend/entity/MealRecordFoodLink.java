@@ -9,10 +9,16 @@ import org.hibernate.annotations.OnDeleteAction;
 @Getter
 @Setter
 @Entity
-@Table(name = "user_food_link")
-public class UserFoodLink {
+@Table(name = "mealrecord_food_link")
+public class MealRecordFoodLink {
     @EmbeddedId
-    private UserFoodLinkId id;
+    private MealRecordFoodLinkId id = new MealRecordFoodLinkId();
+
+    @MapsId("mealRecordId")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @JoinColumn(name = "mealrecord_id", nullable = false)
+    private MealRecord mealRecord;
 
     @MapsId("foodId")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -20,13 +26,6 @@ public class UserFoodLink {
     @JoinColumn(name = "food_id", nullable = false)
     private Food food;
 
-    @MapsId("userId")
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-
-    @Column(name = "preference")
-    private Float preference;
-
+    @Column(name = "intake_amount")
+    private Float intakeAmount;
 }

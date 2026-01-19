@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "kr.ac.dankook.ace.healthy_meal_backend.proto";
+option java_outer_classname = "MealAnalyzeProto";
+
+package image;
+
+service MealAnalyzeService {
+  rpc UploadImage (ImageRequest) returns (AnalyzeResult);
+}
+
+message ImageRequest {
+  string filename = 1;
+  string filetype = 2;
+  bytes imagedata = 3;
+}
+
+message AnalyzeResult {
+  string filename = 1;
+  repeated string foodResult = 2;
+  repeated int32 foodWeight = 3;
+}

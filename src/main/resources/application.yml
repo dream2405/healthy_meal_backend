@@ -2,40 +2,23 @@ spring:
   application:
     name: healthy_meal_backend
   config:
-    import: optional:classpath:application-secret.yml
+    import: classpath:application-secret.yml
   servlet:
     multipart:
       max-file-size: 100MB
       max-request-size: 100MB
-  flyway:
-    locations: "classpath:db/migration/mysql"
-    enabled: true
-  jpa:
-    hibernate:
-      ddl-auto: validate
-  datasource:
-    url: jdbc:mysql://hmb-dev-external-db:3307/test?allowLoadLocalInfile=true
-    username: ${DB_USER}
-    password: ${DB_PASSWORD}
-
-openai:
-  api:
-    key: ${OPENAI_KEY}
-
-jwt:
-  secret: ${JWT_SECRET}
-  token:
-    valid_ms: 10800000 # 3시간
-
-storage:
-  location: /data
+  grpc:
+    server:
+      max-inbound-message-size: 20971520
+  autoconfigure:
+    exclude: net.devh.boot.grpc.server.autoconfigure.GrpcServerSecurityAutoConfiguration
 
 springdoc:
   swagger-ui:
     path: swagger-ui
 
 server:
-  port: 8080
+  port: 51820
 
 logging:
   level:

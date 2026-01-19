@@ -1,12 +1,14 @@
 package kr.ac.dankook.ace.healthy_meal_backend.service;
 
 import jakarta.transaction.Transactional;
-import kr.ac.dankook.ace.healthy_meal_backend.dto.DietCriterionWeightDTO;
+import kr.ac.dankook.ace.healthy_meal_backend.dto.UserResponseDTO;
+import kr.ac.dankook.ace.healthy_meal_backend.dto.UserUpdateRequestDTO;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.DietCriterion;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.DietCriterionRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
@@ -16,20 +18,63 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
     private final DietCriterionRepository dietCriterionRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    @Autowired
-    public UserService(
-            UserRepository userRepository,
-            DietCriterionRepository dietCriterionRepository
-    ) {
-        this.userRepository = userRepository;
-        this.dietCriterionRepository = dietCriterionRepository;
+    public UserResponseDTO getUser(String userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("User not found with id: " + userId));
+
+        return UserResponseDTO.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .birthday(user.getBirthday())
+                .gender(user.getGender() != null ? String.valueOf(user.getGender()) : null)
+                .modelname(user.getNutrientModelname())
+                .build();
     }
 
+    @Transactional
+    public void updateUser(String userId, UserUpdateRequestDTO dto) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("User not found with id: " + userId));
+
+        // Update fields if they are not null
+        if (dto.getEmail() != null) {
+            user.setEmail(dto.getEmail());
+        }
+        if (dto.getPassword() != null && !dto.getPassword().isEmpty()) {
+            user.setHashedPassword(passwordEncoder.encode(dto.getPassword()));
+        }
+        if (dto.getBirthday() != null) {
+            user.setBirthday(dto.getBirthday());
+        }
+        if (dto.getGender() != null && !dto.getGender().isEmpty()) {
+            user.setGender(dto.getGender().charAt(0));
+        }
+        if (dto.getModelname() != null) {
+            user.setNutrientModelname(dto.getModelname());
+        }
+        if (dto.getNutrientLevel() != null) {
+            user.setNutritionLevel(dto.getNutrientLevel());
+        }
+        
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public void deleteUser(String userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new NoSuchElementException("User not found with id: " + userId);
+        }
+        userRepository.deleteById(userId);
+    }
+
+    /*
     public DietCriterionWeightDTO getDietCriterionWeight(String userId) {
         Optional<User> user = userRepository.findById(userId);
         if (user.isEmpty()) {
@@ -75,4 +120,6 @@ public class UserService {
         dietCriterion.setCholesterolMg(dietCriterion.getCholesterolMg()*(floatWeights.get(7).intValue()/100f));
         return dietCriterion;
     }
+
+     */
 }

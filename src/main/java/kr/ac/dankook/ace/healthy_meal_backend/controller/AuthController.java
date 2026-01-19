@@ -1,5 +1,7 @@
 package kr.ac.dankook.ace.healthy_meal_backend.controller;
 
+import kr.ac.dankook.ace.healthy_meal_backend.dto.*;
+import kr.ac.dankook.ace.healthy_meal_backend.exception.DuplicateUserEmailException;
 import kr.ac.dankook.ace.healthy_meal_backend.exception.DuplicateUserIdException;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
@@ -18,10 +20,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import kr.ac.dankook.ace.healthy_meal_backend.dto.LoginRequestDTO;
-import kr.ac.dankook.ace.healthy_meal_backend.dto.TokenResponseDTO;
-import kr.ac.dankook.ace.healthy_meal_backend.dto.UserGetDTO;
-import kr.ac.dankook.ace.healthy_meal_backend.dto.UserPostDTO;
 import kr.ac.dankook.ace.healthy_meal_backend.entity.User;
 import kr.ac.dankook.ace.healthy_meal_backend.repository.UserRepository;
 import kr.ac.dankook.ace.healthy_meal_backend.security.JwtTokenProvider;
@@ -35,27 +33,34 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
-    private final ModelMapper modelMapper;
     private final PasswordEncoder passwordEncoder;
 
     @PostMapping("/signup")
     @Operation(summary = "주어진 정보로 회원가입")
-    public ResponseEntity<UserGetDTO> createUser(@RequestBody UserPostDTO userPost) {
+    public ResponseEntity<ResultMessageResponseDTO> createUser(@RequestBody SignupRequestDTO userPost) {
         logger.info("회원가입 시작 - 전달받은 DTO: {}",  userPost);
         if (userRepository.existsById(userPost.getId())) {
             throw new DuplicateUserIdException(userPost.getId());
+        } else if (userRepository.existsByEmail(userPost.getEmail())) {
+            throw new DuplicateUserEmailException(userPost.getEmail());
         }
-        
+
         User user = new User();
-        user.setId(userPost.getId());
-        user.setHashedPassword(passwordEncoder.encode(userPost.getHashedPassword()));
-        user.setBirthday(userPost.getBirthday());
-        user.setGender(userPost.getGender() != null && !userPost.getGender().isEmpty() ? userPost.getGender().charAt(0) : null);
-
-        var savedUser = userRepository.save(user);
-        UserGetDTO userGetDTO = modelMapper.map(savedUser, UserGetDTO.class);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(userGetDTO);
+        try {
+            user.setId(userPost.getId());
+            user.setEmail(userPost.getEmail());
+            user.setHashedPassword(passwordEncoder.encode(userPost.getPassword()));
+            user.setBirthday(userPost.getBirthday());
+            user.setGender(userPost.getGender() != null && !userPost.getGender().isEmpty() ? userPost.getGender().charAt(0) : null);
+            user.setNutrientModelname("");
+            user.setNutritionLevel(1.0f);
+            userRepository.save(user);
+        } catch (Exception exception) {
+            ResultMessageResponseDTO resultMessageResponseDTO = new ResultMessageResponseDTO("회원가입 실패 : " + exception.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resultMessageResponseDTO);
+        }
+        ResultMessageResponseDTO resultMessageResponseDTO = new ResultMessageResponseDTO("회원가입 성공");
+        return ResponseEntity.status(HttpStatus.CREATED).body(resultMessageResponseDTO);
     }
 
     @PostMapping("/login")
@@ -74,9 +79,7 @@ public class AuthController {
         } catch (BadCredentialsException e) {
             throw new BadCredentialsException("로그인 실패: " + e.getMessage());
         }
-
         String token = jwtTokenProvider.createToken(auth.getName());
-
         return ResponseEntity.ok(new TokenResponseDTO(token));
     }
 }

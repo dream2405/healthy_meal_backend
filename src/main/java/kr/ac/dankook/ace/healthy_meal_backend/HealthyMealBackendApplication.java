@@ -8,7 +8,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 import java.util.TimeZone;
 
-
 @SpringBootApplication
 @EnableJpaAuditing
 @EnableScheduling
