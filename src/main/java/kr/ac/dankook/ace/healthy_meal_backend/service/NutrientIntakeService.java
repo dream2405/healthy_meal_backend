@@ -95,7 +95,7 @@ public class NutrientIntakeService {
                     nullToZero(food.getVitaminAUg())*intakeRatio,
                     nullToZero(food.getVitaminBMg())*intakeRatio,
                     nullToZero(food.getFolicacidUg())*intakeRatio,
-                    nullToZero(food.getVitaminB12Ug())*intakeRatio,
+                    nullToZero(food.getVitaminB12Mg())*intakeRatio,
                     nullToZero(food.getVitaminCMg())*intakeRatio,
                     nullToZero(food.getVitaminDUg())*intakeRatio,
                     nullToZero(food.getVitaminEMg())*intakeRatio
@@ -185,7 +185,7 @@ public class NutrientIntakeService {
                     nullToZero(food.getVitaminAUg()) * calRatio,
                     nullToZero(food.getVitaminBMg()) * calRatio,
                     nullToZero(food.getFolicacidUg()) * calRatio,
-                    nullToZero(food.getVitaminB12Ug()) * calRatio,
+                    nullToZero(food.getVitaminB12Mg()) * calRatio,
                     nullToZero(food.getVitaminCMg()) * calRatio,
                     nullToZero(food.getVitaminDUg()) * calRatio,
                     nullToZero(food.getVitaminEMg()) * calRatio

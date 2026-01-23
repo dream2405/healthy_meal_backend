@@ -114,7 +114,7 @@ public class MealRecordService {
         dto.setVitaminAUg(e.getVitaminAUg());
         dto.setVitaminBMg(e.getVitaminBMg());
         dto.setFolicacidUg(e.getFolicacidUg());
-        dto.setVitaminB12Ug(e.getVitaminB12Ug());
+        dto.setVitaminB12Ug(e.getVitaminB12Mg());
         dto.setVitaminCMg(e.getVitaminCMg());
         dto.setVitaminDUg(e.getVitaminDUg());
         dto.setVitaminEMg(e.getVitaminEMg());
