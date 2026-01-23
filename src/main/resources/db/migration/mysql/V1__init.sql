@@ -100,7 +100,8 @@ CREATE TABLE daily_intake
     dailyscore          INT                     DEFAULT 0,
     CONSTRAINT pk_daily_intake PRIMARY KEY (id)
 );
-# 한 사람당 하루에 하나의 daily_intake만 가짐
+
+-- 한 사람당 하루에 하나의 daily_intake만 가짐
 ALTER TABLE daily_intake
     ADD CONSTRAINT uc_ad6b26af46cf9d9a03ca385db UNIQUE (user_id, day);
 ALTER TABLE daily_intake

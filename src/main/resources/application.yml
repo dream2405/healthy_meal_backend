@@ -17,9 +17,9 @@ spring:
     enabled: true
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: create
   datasource:
-    url: jdbc:mysql://mysql-cluster.mysql-dev:6446/healthy_meal?allowLoadLocalInfile=true
+    url: jdbc:mysql://mysql-cluster.mysql-dev:6446/healthy_meal?allowLoadLocalInfile=true&createDatabaseIfNotExist=true
     username: ${DB_USER}
     password: ${DB_PASSWORD}
 
