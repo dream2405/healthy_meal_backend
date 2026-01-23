@@ -19,7 +19,7 @@ spring:
     hibernate:
       ddl-auto: validate
   datasource:
-    url: jdbc:mysql://hmb-dev-external-db:3307/test?allowLoadLocalInfile=true
+    url: jdbc:mysql://mysql-cluster.mysql-dev:6446/healthy_meal?allowLoadLocalInfile=true
     username: ${DB_USER}
     password: ${DB_PASSWORD}
 
